@@ -1,0 +1,121 @@
+package io.last9.android.rum
+
+/**
+ * Scopes the DSL so nested lambdas cannot accidentally access the outer receiver.
+ */
+@DslMarker
+annotation class Last9Dsl
+
+/**
+ * Configuration for the Last9 Android RUM SDK.
+ *
+ * Use via [Last9.init]:
+ * ```kotlin
+ * Last9.init(this) {
+ *     token = "YOUR-LAST9-INGESTION-TOKEN"
+ *     serviceName = "watcho-android"
+ * }
+ * ```
+ */
+@Last9Dsl
+class Last9Options {
+
+    // -------------------------------------------------------------------------
+    // Required
+    // -------------------------------------------------------------------------
+
+    /** Last9 ingestion token. Required. */
+    var token: String = ""
+
+    /** OpenTelemetry service.name resource attribute. Required. */
+    var serviceName: String = ""
+
+    // -------------------------------------------------------------------------
+    // Optional — override defaults
+    // -------------------------------------------------------------------------
+
+    /**
+     * Last9 OTLP ingestion base URL.
+     * Traces will be exported to [baseUrl]/telemetry/beacon/v1/traces.
+     * Defaults to the Last9 global endpoint; set to your org-specific endpoint.
+     */
+    var baseUrl: String = "https://otlp.last9.io"
+
+    /** deployment.environment resource attribute (e.g. "production", "staging"). */
+    var deploymentEnvironment: String = ""
+
+    /** service.version resource attribute. */
+    var serviceVersion: String = ""
+
+    // -------------------------------------------------------------------------
+    // Instrumentation toggles
+    // -------------------------------------------------------------------------
+
+    /** Auto-capture unhandled JVM exceptions as crash spans. Default: true. */
+    var enableCrashReporting: Boolean = true
+
+    /** Detect ANRs (main thread blocked > 5s) and emit spans. Default: true. */
+    var enableAnrDetection: Boolean = true
+
+    /**
+     * Automatically create CLIENT spans and inject W3C traceparent headers
+     * for all OkHttp requests. When enabled, call [Last9RumInstance.createOkHttpInterceptor]
+     * and add it to your OkHttpClient. Default: true.
+     */
+    var enableOkHttpInstrumentation: Boolean = true
+
+    // Note: app startup tracking (cold/warm) is always-on via the OTel Android agent.
+    // A user-facing toggle will be added in a future release once the agent API stabilises.
+
+    // -------------------------------------------------------------------------
+    // Advanced
+    // -------------------------------------------------------------------------
+
+    /** Emit debug logs to Logcat. Default: false. */
+    var debugMode: Boolean = false
+
+    /**
+     * Extra resource attributes attached to every exported span and log.
+     * Keys follow OTel semantic conventions where possible.
+     *
+     * Note: SDK-managed keys (`service.name`, `telemetry.sdk.name`, etc.) always
+     * take precedence and cannot be overridden here.
+     */
+    var additionalResourceAttributes: Map<String, String> = emptyMap()
+
+    // -------------------------------------------------------------------------
+    // Internal helpers
+    // -------------------------------------------------------------------------
+
+    internal fun validate() {
+        require(token.isNotBlank()) {
+            "Last9Options: `token` must not be blank. " +
+                "Get your token from the Last9 console."
+        }
+        require(serviceName.isNotBlank()) {
+            "Last9Options: `serviceName` must not be blank."
+        }
+        require(baseUrl.isNotBlank()) {
+            "Last9Options: `baseUrl` must not be blank."
+        }
+    }
+
+    /** Fully-qualified OTLP traces endpoint. */
+    internal fun tracesEndpoint(): String =
+        "${baseUrl.trimEnd('/')}/telemetry/beacon/v1/traces"
+
+    /** Authorization header pair for all OTLP export requests. */
+    internal fun authHeader(): Pair<String, String> =
+        "X-LAST9-API-TOKEN" to "Bearer $token"
+
+    /**
+     * Masks the token to prevent accidental exposure in logs or crash reports.
+     * Reflective loggers (Sentry, Firebase Crashlytics) will see `***` for the token.
+     */
+    override fun toString(): String =
+        "Last9Options(serviceName=$serviceName, baseUrl=$baseUrl, " +
+            "token=***, enableCrashReporting=$enableCrashReporting, " +
+            "enableAnrDetection=$enableAnrDetection, " +
+            "enableOkHttpInstrumentation=$enableOkHttpInstrumentation, " +
+            "debugMode=$debugMode)"
+}
