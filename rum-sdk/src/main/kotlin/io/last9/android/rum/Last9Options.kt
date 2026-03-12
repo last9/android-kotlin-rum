@@ -24,7 +24,7 @@ class Last9Options {
     // Required
     // -------------------------------------------------------------------------
 
-    /** Last9 ingestion token. Required. */
+    /** Last9 ingestion token or Basic Auth credentials. Required. */
     var token: String = ""
 
     /** OpenTelemetry service.name resource attribute. Required. */
@@ -36,10 +36,26 @@ class Last9Options {
 
     /**
      * Last9 OTLP ingestion base URL.
-     * Traces will be exported to [baseUrl]/telemetry/beacon/v1/traces.
+     * Traces will be exported to [baseUrl]/v1/traces.
      * Defaults to the Last9 global endpoint; set to your org-specific endpoint.
      */
     var baseUrl: String = "https://otlp.last9.io"
+
+    /**
+     * Use standard OTLP endpoint (/v1/traces) instead of beacon endpoint.
+     * When true: Uses standard endpoint with Basic Auth or API key
+     * When false: Uses beacon endpoint (/telemetry/beacon/v1/traces) with Bearer token
+     * Default: false (for backward compatibility)
+     */
+    var useStandardEndpoint: Boolean = false
+
+    /**
+     * Use HTTP Basic Authentication instead of Bearer token.
+     * When true: token is treated as base64-encoded "username:password"
+     * When false: token is sent as "Bearer <token>" in X-LAST9-API-TOKEN header
+     * Default: false (for backward compatibility)
+     */
+    var useBasicAuth: Boolean = false
 
     /** deployment.environment resource attribute (e.g. "production", "staging"). */
     var deploymentEnvironment: String = ""
@@ -101,12 +117,23 @@ class Last9Options {
     }
 
     /** Fully-qualified OTLP traces endpoint. */
-    internal fun tracesEndpoint(): String =
-        "${baseUrl.trimEnd('/')}/telemetry/beacon/v1/traces"
+    internal fun tracesEndpoint(): String {
+        val base = baseUrl.trimEnd('/')
+        return if (useStandardEndpoint) {
+            "$base/v1/traces"
+        } else {
+            "$base/telemetry/beacon/v1/traces"
+        }
+    }
 
     /** Authorization header pair for all OTLP export requests. */
-    internal fun authHeader(): Pair<String, String> =
-        "X-LAST9-API-TOKEN" to "Bearer $token"
+    internal fun authHeader(): Pair<String, String> {
+        return if (useBasicAuth) {
+            "Authorization" to "Basic $token"
+        } else {
+            "X-LAST9-API-TOKEN" to "Bearer $token"
+        }
+    }
 
     /**
      * Masks the token to prevent accidental exposure in logs or crash reports.

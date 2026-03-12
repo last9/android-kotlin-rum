@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "io.last9.android.rum"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 26
@@ -42,6 +42,10 @@ dependencies {
     // Uses `api` so consumers transitively get the OTel API for manual span creation.
     api(libs.opentelemetry.android.agent)
     api(libs.opentelemetry.api)
+
+    // Alpha dependencies for config and features
+    implementation(libs.opentelemetry.android.core)
+    implementation(libs.opentelemetry.android.agent.api)
 
     // OkHttp is compileOnly — SDK consumers supply their own version.
     // We hand-roll the OkHttp interceptor (OkHttpInstrumentation.kt) using the

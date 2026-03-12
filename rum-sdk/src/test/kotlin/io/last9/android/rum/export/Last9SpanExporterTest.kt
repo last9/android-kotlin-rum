@@ -1,8 +1,11 @@
 package io.last9.android.rum.export
 
+import io.opentelemetry.api.trace.SpanKind
+import io.opentelemetry.api.trace.StatusCode
 import io.opentelemetry.sdk.common.CompletableResultCode
 import io.opentelemetry.sdk.testing.trace.TestSpanData
 import io.opentelemetry.sdk.trace.data.SpanData
+import io.opentelemetry.sdk.trace.data.StatusData
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -90,6 +93,8 @@ class Last9SpanExporterTest {
     private fun fakeSpan(name: String): SpanData =
         TestSpanData.builder()
             .setName(name)
+            .setKind(SpanKind.INTERNAL)
+            .setStatus(StatusData.ok())
             .setStartEpochNanos(System.nanoTime())
             .setEndEpochNanos(System.nanoTime() + 1_000_000)
             .setHasEnded(true)

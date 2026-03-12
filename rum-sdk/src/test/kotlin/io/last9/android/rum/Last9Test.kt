@@ -41,7 +41,7 @@ class Last9Test {
         val ex = assertThrows(IllegalStateException::class.java) {
             Last9.getInstance()
         }
-        assertTrue(ex.message!!.contains("Last9 SDK has not been initialized"))
+        assertTrue("Expected error message about SDK not initialized", ex.message!!.contains("Last9 SDK has not been initialized"))
     }
 
     // -------------------------------------------------------------------------

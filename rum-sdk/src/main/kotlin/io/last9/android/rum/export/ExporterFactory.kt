@@ -16,17 +16,46 @@ internal object ExporterFactory {
     private const val EXPORT_TIMEOUT_SECONDS = 10L
 
     /**
-     * Returns an [OtlpHttpSpanExporter] pre-configured for Last9:
-     * - Endpoint: [Last9Options.tracesEndpoint]
-     * - Auth:     `X-LAST9-API-TOKEN: Bearer <token>` header
-     * - Timeout:  10 seconds per export batch
+     * Returns an [OtlpHttpSpanExporter] pre-configured for Last9.
+     *
+     * Supports two modes:
+     *
+     * **Standard OTLP Mode** ([Last9Options.useStandardEndpoint] = true):
+     * - Endpoint: `<baseUrl>/v1/traces`
+     * - Auth: HTTP Basic Auth or API key in Authorization header
+     * - Use this when sending to Last9 via proxy or using standard OTLP endpoint
+     * - Example config:
+     *   ```kotlin
+     *   Last9Options {
+     *       baseUrl = "https://otlp-aps1.last9.io"
+     *       token = "bGFzdDk6OGIzNGMxZDcxOTZj"  // base64 encoded username:password
+     *       useStandardEndpoint = true
+     *       useBasicAuth = true
+     *   }
+     *   ```
+     *
+     * **Beacon Mode** ([Last9Options.useStandardEndpoint] = false, default):
+     * - Endpoint: `<baseUrl>/telemetry/beacon/v1/traces`
+     * - Auth: Bearer token in X-LAST9-API-TOKEN header
+     * - Additional headers: Client-ID (required)
+     * - **KNOWN ISSUE**: Requires unknown "Origin" header, returns HTTP 400
+     * - Designed for web browsers, not recommended for Android apps
+     * - See investigation notes in git history (2026-03-12)
      */
     fun createSpanExporter(options: Last9Options): SpanExporter {
         val (headerName, headerValue) = options.authHeader()
-        return OtlpHttpSpanExporter.builder()
+        val builder = OtlpHttpSpanExporter.builder()
             .setEndpoint(options.tracesEndpoint())
             .addHeader(headerName, headerValue)
+            .addHeader("Content-Type", "application/json")
             .setTimeout(EXPORT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .build()
+
+        // Beacon endpoint requires Client-ID header
+        // Standard endpoint does not need this header
+        if (!options.useStandardEndpoint) {
+            builder.addHeader("Client-ID", options.serviceName)
+        }
+
+        return builder.build()
     }
 }

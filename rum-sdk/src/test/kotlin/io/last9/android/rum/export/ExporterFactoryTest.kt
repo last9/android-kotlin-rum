@@ -2,6 +2,7 @@ package io.last9.android.rum.export
 
 import io.last9.android.rum.Last9Options
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ExporterFactoryTest {
