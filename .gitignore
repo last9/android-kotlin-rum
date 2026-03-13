@@ -1,0 +1,10 @@
+.gradle/
+.idea/
+build/
+*.iml
+local.properties
+*.keystore
+*.jks
+
+# Gradle wrapper (keep wrapper jar in VCS as is standard for Android projects)
+!gradle/wrapper/gradle-wrapper.jar

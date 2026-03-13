@@ -1,0 +1,11 @@
+# Copy this file to local.properties and set your Android SDK path.
+# local.properties is git-ignored and must never be committed.
+
+# macOS (Android Studio default):
+# sdk.dir=/Users/<your-username>/Library/Android/sdk
+
+# Linux:
+# sdk.dir=/home/<your-username>/Android/Sdk
+
+# Set your Last9 ingestion token for the example app:
+# last9.token=YOUR_TOKEN_HERE
