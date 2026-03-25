@@ -35,11 +35,11 @@ class Last9Options {
     // -------------------------------------------------------------------------
 
     /**
-     * Last9 OTLP ingestion base URL.
+     * OTLP ingestion base URL.
      * Traces will be exported to [baseUrl]/v1/traces.
-     * Defaults to the Last9 global endpoint; set to your org-specific endpoint.
+     * Must be set to your OTLP endpoint.
      */
-    var baseUrl: String = "https://otlp.last9.io"
+    var baseUrl: String = "YOUR_OTLP_ENDPOINT"
 
     /**
      * Use standard OTLP endpoint (/v1/traces) instead of beacon endpoint.
@@ -89,6 +89,15 @@ class Last9Options {
 
     /** Emit debug logs to Logcat. Default: false. */
     var debugMode: Boolean = false
+
+    /**
+     * Timeout for exporting spans to the OTLP endpoint, in seconds.
+     * Default: 10 seconds.
+     *
+     * Increase this value if you're experiencing timeout errors on slow networks.
+     * Recommended range: 10-30 seconds for mobile apps.
+     */
+    var exportTimeoutSeconds: Long = 10L
 
     /**
      * Extra resource attributes attached to every exported span and log.

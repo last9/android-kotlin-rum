@@ -78,12 +78,28 @@ class Last9SpanExporterTest {
         exporter.export(spans.toMutableList())
 
         val logs = ShadowLog.getLogs().filter { it.tag == "Last9SpanExporter" }
-        assertEquals("One log per span", 3, logs.size)
-        logs.forEach { log ->
+
+        // Should log:
+        // 1. "Exporting N span(s)..."
+        // 2-4. One line per span with "→ span: name=... traceId=... spanId=..."
+        // 5. "Successfully exported N span(s)"
+        assertEquals("Should log: summary + per-span + success", 5, logs.size)
+
+        // Check summary line
+        assertTrue("First log should be summary", logs[0].msg.contains("Exporting"))
+        assertTrue("First log should contain count", logs[0].msg.contains("3 span(s)"))
+
+        // Check per-span logs
+        val spanLogs = logs.subList(1, 4)
+        spanLogs.forEach { log ->
+            assertTrue("Log must contain '→ span:'", log.msg.contains("→ span:"))
             assertTrue("Log must contain 'name='", log.msg.contains("name="))
             assertTrue("Log must contain 'traceId='", log.msg.contains("traceId="))
             assertTrue("Log must contain 'spanId='", log.msg.contains("spanId="))
         }
+
+        // Check success line
+        assertTrue("Last log should be success", logs[4].msg.contains("Successfully exported"))
     }
 
     // -------------------------------------------------------------------------

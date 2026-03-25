@@ -104,7 +104,16 @@ Last9.init(this) {
 }
 ```
 
-Check Logcat for `Last9SpanExporter` and `Last9AgentConfigurator` tags.
+Check Logcat for `Last9SpanExporter` and `ExporterFactory` tags. You should see:
+
+```
+ExporterFactory: Creating OTLP exporter:
+ExporterFactory:   Endpoint: https://otlp.example.com/v1/traces
+Last9SpanExporter: Exporting 3 span(s)...
+Last9SpanExporter: Successfully exported 3 span(s)
+```
+
+**Seeing timeout errors?** See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#export-timeout-errors) for solutions.
 
 ## Configuration
 
@@ -112,7 +121,7 @@ Check Logcat for `Last9SpanExporter` and `Last9AgentConfigurator` tags.
 |--------|------|----------|---------|-------------|
 | `token` | String | Yes | — | Auth token for the OTLP endpoint |
 | `serviceName` | String | Yes | — | Identifies your app in the backend |
-| `baseUrl` | String | Yes | `https://otlp.last9.io` | OTLP endpoint base URL |
+| `baseUrl` | String | Yes | — | OTLP endpoint base URL |
 | `useStandardEndpoint` | Boolean | No | `false` | Use `/v1/traces` path (recommended for most setups) |
 | `useBasicAuth` | Boolean | No | `false` | Send `Authorization: Basic` header instead of `X-LAST9-API-TOKEN` |
 | `deploymentEnvironment` | String | No | `""` | `deployment.environment` resource attribute |
@@ -121,6 +130,7 @@ Check Logcat for `Last9SpanExporter` and `Last9AgentConfigurator` tags.
 | `enableAnrDetection` | Boolean | No | `true` | Detect Application Not Responding events |
 | `enableOkHttpInstrumentation` | Boolean | No | `true` | Enable `createOkHttpInterceptor()` |
 | `debugMode` | Boolean | No | `false` | Log span exports to Logcat |
+| `exportTimeoutSeconds` | Long | No | `10` | Timeout for exporting spans (increase for slow networks) |
 | `additionalResourceAttributes` | Map | No | `{}` | Extra OTel resource attributes on every span |
 
 ## Production: Use a proxy

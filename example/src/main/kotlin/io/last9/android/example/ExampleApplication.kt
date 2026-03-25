@@ -121,12 +121,29 @@ class ExampleApplication : Application() {
              * ⚠️ IMPORTANT: Set to false in production builds to avoid log spam
              *
              * Logs will show:
-             * - "Last9: SDK initialized successfully"
-             * - "Last9: Exporter configured: <endpoint>"
-             * - "Last9: Exported N spans successfully"
-             * - Any export errors with HTTP status codes
+             * - "ExporterFactory: Creating OTLP exporter: ..."
+             * - "Last9SpanExporter: Exporting N span(s)..."
+             * - "Last9SpanExporter: Successfully exported N span(s)"
+             * - Any export errors with details
              */
             debugMode = true
+
+            /**
+             * Timeout for exporting spans to OTLP endpoint (in seconds).
+             *
+             * Default: 10 seconds
+             * Recommended range: 10-30 seconds for mobile apps
+             *
+             * Increase this if you're experiencing timeout errors on slow networks:
+             * - WiFi: 10-15 seconds
+             * - Mobile data (4G/5G): 20-30 seconds
+             * - Mobile data (3G or slower): 30-60 seconds
+             *
+             * See TROUBLESHOOTING.md for timeout error solutions.
+             *
+             * Uncomment to customize:
+             * exportTimeoutSeconds = 30
+             */
 
             // ============================================================
             // FEATURE FLAGS (all enabled by default)

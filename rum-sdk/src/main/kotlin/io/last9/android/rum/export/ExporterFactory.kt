@@ -1,9 +1,12 @@
 package io.last9.android.rum.export
 
+import android.util.Log
 import io.last9.android.rum.Last9Options
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import java.util.concurrent.TimeUnit
+
+private const val TAG = "ExporterFactory"
 
 /**
  * Constructs the OTLP/HTTP span exporter pointed at the Last9 ingestion endpoint.
@@ -12,8 +15,6 @@ import java.util.concurrent.TimeUnit
  * can be tested in isolation (no Android context required).
  */
 internal object ExporterFactory {
-
-    private const val EXPORT_TIMEOUT_SECONDS = 10L
 
     /**
      * Returns an [OtlpHttpSpanExporter] pre-configured for Last9.
@@ -43,17 +44,37 @@ internal object ExporterFactory {
      * - See investigation notes in git history (2026-03-12)
      */
     fun createSpanExporter(options: Last9Options): SpanExporter {
+        val endpoint = options.tracesEndpoint()
         val (headerName, headerValue) = options.authHeader()
+        val timeoutSeconds = options.exportTimeoutSeconds
+
+        // Validate timeout value
+        require(timeoutSeconds > 0) {
+            "exportTimeoutSeconds must be positive, got: $timeoutSeconds"
+        }
+
+        if (options.debugMode) {
+            Log.d(TAG, "Creating OTLP exporter:")
+            Log.d(TAG, "  Endpoint: $endpoint")
+            Log.d(TAG, "  Timeout: ${timeoutSeconds}s")
+            Log.d(TAG, "  Auth header: $headerName")
+            Log.d(TAG, "  Standard endpoint: ${options.useStandardEndpoint}")
+            Log.d(TAG, "  Basic auth: ${options.useBasicAuth}")
+        }
+
         val builder = OtlpHttpSpanExporter.builder()
-            .setEndpoint(options.tracesEndpoint())
+            .setEndpoint(endpoint)
             .addHeader(headerName, headerValue)
             .addHeader("Content-Type", "application/json")
-            .setTimeout(EXPORT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .setTimeout(timeoutSeconds, TimeUnit.SECONDS)
 
         // Beacon endpoint requires Client-ID header
         // Standard endpoint does not need this header
         if (!options.useStandardEndpoint) {
             builder.addHeader("Client-ID", options.serviceName)
+            if (options.debugMode) {
+                Log.d(TAG, "  Client-ID: ${options.serviceName}")
+            }
         }
 
         return builder.build()
