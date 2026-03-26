@@ -9,7 +9,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        minSdk = 26
+        minSdk = 24
         buildConfigField("String", "SDK_VERSION", "\"0.2.0\"")
     }
 
@@ -20,6 +20,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // Enable core library desugaring for minSdk < 26
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -38,7 +40,10 @@ android {
 }
 
 dependencies {
-    // Bundles crash, ANR, activity/fragment lifecycle, sessions, startup, slow-rendering.
+    // Core library desugaring for minSdk < 26 (Java 8+ API support on older Android)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+
+    // Bundles crash, ANR, activity, fragment, sessions, startup, slow-rendering.
     // Uses `api` so consumers transitively get the OTel API for manual span creation.
     api(libs.opentelemetry.android.agent)
     api(libs.opentelemetry.api)

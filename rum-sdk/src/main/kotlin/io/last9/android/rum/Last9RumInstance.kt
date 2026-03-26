@@ -1,5 +1,6 @@
 package io.last9.android.rum
 
+import android.app.Application
 import io.last9.android.rum.instrumentation.OkHttpInstrumentation
 import io.opentelemetry.android.OpenTelemetryRum
 import io.opentelemetry.api.trace.Tracer
@@ -21,6 +22,9 @@ import io.opentelemetry.api.trace.Tracer
  * val client = OkHttpClient.Builder()
  *     .addInterceptor(rum.createOkHttpInterceptor())
  *     .build()
+ *
+ * // Automatic screen tracking for all Activities
+ * rum.enableAutomaticScreenTracking(app)
  * ```
  */
 class Last9RumInstance internal constructor(
@@ -28,7 +32,6 @@ class Last9RumInstance internal constructor(
     val otelRum: OpenTelemetryRum,
     private val options: Last9Options,
 ) {
-
     /**
      * Returns an OTel [Tracer] for creating manual spans.
      *
@@ -52,4 +55,47 @@ class Last9RumInstance internal constructor(
         }
         return OkHttpInstrumentation(otelRum.openTelemetry)
     }
+
+    /**
+     * Enable automatic screen tracking for all Activities.
+     *
+     * Call this once in your Application.onCreate() to automatically track
+     * screen views for ALL Activities without adding code to each one.
+     *
+     * This is ideal for apps with many screens (50+) where manually adding
+     * tracking code to every Activity would be difficult to maintain.
+     *
+     * What it tracks:
+     * - Creates a "screen.view" span for every Activity onCreate
+     * - Sets screen.name attribute to the Activity's simple class name
+     * - Works for all current and future Activities
+     *
+     * Example:
+     * ```kotlin
+     * class MyApp : Application() {
+     *     override fun onCreate() {
+     *         super.onCreate()
+     *         Last9.init(this) { ... }
+     *
+     *         // Enable automatic screen tracking
+     *         Last9.getInstance().enableAutomaticScreenTracking(this)
+     *     }
+     * }
+     * ```
+     *
+     * What you'll see in Last9 dashboard:
+     * - Span name: "screen.view"
+     * - Attributes: screen.name, screen.class
+     * - One span per Activity created
+     *
+     * @param application The Application instance to register callbacks with
+     */
+    fun enableAutomaticScreenTracking(application: Application) {
+        val callbacks = ScreenTrackingCallbacks(
+            tracer = getTracer(),
+            debugMode = options.debugMode
+        )
+        application.registerActivityLifecycleCallbacks(callbacks)
+    }
+
 }

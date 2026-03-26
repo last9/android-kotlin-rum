@@ -21,45 +21,46 @@ class ExampleApplication : Application() {
 
         // Initialize Last9 SDK with configuration
         // This should be done as early as possible in your application lifecycle
-        Last9.init(this) {
+        val rumInstance = Last9.init(this) {
 
             // ============================================================
             // REQUIRED CONFIGURATION
             // ============================================================
 
             /**
-             * Authentication token for Last9.
+             * Authentication token for your OTLP endpoint.
              *
-             * This is a base64-encoded Basic Auth credential in format: username:password
-             * Get this from your Last9 console.
+             * For Last9: Get your token from Last9 console
+             * For other backends: Use your authentication token
              *
              * ⚠️ SECURITY WARNING: For production apps, use a proxy pattern instead
              * of embedding credentials directly. See README.md "Production Best Practices"
              * section for details.
              */
-            token = "YOUR_BASE64_BASIC_AUTH_TOKEN"  // Replace with your actual Last9 token
+            token = "YOUR_TOKEN"
 
             /**
-             * Service name that identifies your application in Last9.
+             * Service name that identifies your application in your observability backend.
              *
-             * This appears in your Last9 dashboard and groups all traces from this app.
+             * This appears in your dashboard and groups all traces from this app.
              * Use a consistent name across environments (e.g., "my-android-app").
              *
              * Recommended format: lowercase with hyphens (e.g., "my-app-name")
              */
-            serviceName = "android-kotlin-rum-test"
+            serviceName = "my-android-app"
 
             /**
-             * Last9 OTLP endpoint URL (without path).
+             * OTLP endpoint URL (without path).
              *
              * This is the base URL where traces will be sent.
              * The SDK automatically appends the correct path based on useStandardEndpoint.
              *
              * Examples:
              * - Standard OTLP: "https://otlp.example.com" → sends to /v1/traces
+             * - Last9: "https://otlp-aps1.last9.io:443" → sends to /v1/traces
              * - Your proxy: "https://telemetry-proxy.yourcompany.com" → sends to /v1/traces
              */
-            baseUrl = "https://otlp.example.com"
+            baseUrl = "YOUR_OTLP_ENDPOINT"
 
             // ============================================================
             // ENDPOINT CONFIGURATION
@@ -69,9 +70,9 @@ class ExampleApplication : Application() {
              * Use standard OTLP endpoint (/v1/traces).
              *
              * When true: Uses industry-standard OpenTelemetry endpoint
-             * When false: Uses legacy beacon endpoint (not recommended for mobile)
+             * When false: Uses beacon endpoint /telemetry/beacon/v1/traces
              *
-             * ✅ RECOMMENDED: Always set to true for mobile apps
+             * For standard OTLP endpoints, set to true
              */
             useStandardEndpoint = true
 
@@ -79,12 +80,9 @@ class ExampleApplication : Application() {
              * Use HTTP Basic Authentication.
              *
              * When true: Sends "Authorization: Basic <token>" header
-             * When false: Sends "X-LAST9-API-TOKEN: <token>" header
+             * When false: Sends "X-LAST9-API-TOKEN: Bearer <token>" header
              *
-             * ✅ RECOMMENDED: Set to true when using standard OTLP endpoint
-             *
-             * Note: If using a proxy, you may set this to false and let your
-             * proxy handle Last9 authentication.
+             * For Basic Auth credentials, set to true
              */
             useBasicAuth = true
 
@@ -128,6 +126,13 @@ class ExampleApplication : Application() {
              */
             debugMode = true
 
+            // Explicitly enable Activity and Fragment tracking for testing
+            enableActivityInstrumentation = true
+            enableFragmentInstrumentation = true
+            enableCrashReporting = true
+            enableAnrDetection = true
+            enableOkHttpInstrumentation = true
+
             /**
              * Timeout for exporting spans to OTLP endpoint (in seconds).
              *
@@ -144,10 +149,68 @@ class ExampleApplication : Application() {
              * Uncomment to customize:
              * exportTimeoutSeconds = 30
              */
+        }
 
-            // ============================================================
-            // FEATURE FLAGS (all enabled by default)
-            // ============================================================
+        // ============================================================
+        // AUTOMATIC SCREEN TRACKING (RECOMMENDED FOR 50+ SCREENS)
+        // ============================================================
+
+        /**
+         * Enable automatic screen tracking for all Activities.
+         *
+         * This is HIGHLY RECOMMENDED for apps with many screens (50+).
+         * Instead of manually adding tracking code to every Activity,
+         * this single line automatically tracks ALL Activities.
+         *
+         * What it does:
+         * - Registers a global ActivityLifecycleCallbacks
+         * - Automatically creates "screen.view" spans for every Activity
+         * - Sets screen.name attribute to the Activity's class name
+         * - Works for all current AND future Activities
+         *
+         * Benefits:
+         * - No need to modify individual Activities
+         * - Future-proof - new Activities are tracked automatically
+         * - Scales to any number of screens
+         * - Clean separation of concerns
+         *
+         * What you'll see in Last9:
+         * - "screen.view" spans with screen.name = "MainActivity", "SecondActivity", etc.
+         * - Plus automatic Activity lifecycle events: Created, Resumed, Paused, etc.
+         */
+        rumInstance.enableAutomaticScreenTracking(this)
+
+        // ============================================================
+        // SESSION TRACKING (AUTOMATIC - ZERO CONFIG)
+        // ============================================================
+
+        /**
+         * Session tracking is now AUTOMATIC!
+         *
+         * The SDK automatically adds session.id to ALL spans with zero configuration.
+         *
+         * This is a workaround for OpenTelemetry Android 1.0.1 bug where
+         * the built-in session.id is empty (issue #781).
+         *
+         * What you get automatically:
+         * - Unique session.id attribute on every span
+         * - Same session ID across the entire app session
+         * - New session ID when app is restarted
+         * - No code needed!
+         *
+         * Issue: https://github.com/open-telemetry/opentelemetry-android/issues/781
+         */
+
+        // ============================================================
+        // FEATURE FLAGS (all enabled by default)
+        // ============================================================
+
+        /**
+         * Note: The configuration block above has ended.
+         * The following comments are for reference only.
+         */
+
+        if (false) {
 
             /**
              * Enable automatic crash reporting.
@@ -167,6 +230,32 @@ class ExampleApplication : Application() {
              *
              * Uncomment to disable:
              * enableAnrDetection = false
+             */
+
+            /**
+             * Enable Activity lifecycle instrumentation.
+             *
+             * When true: Captures Activity lifecycle events (onCreate, onStart, onResume, etc.)
+             * Default: true
+             *
+             * Each Activity transition will be recorded as a span with screen.name attribute
+             * showing the Activity class name, helping you track user navigation flow.
+             *
+             * Uncomment to disable:
+             * enableActivityInstrumentation = false
+             */
+
+            /**
+             * Enable Fragment lifecycle instrumentation.
+             *
+             * When true: Captures Fragment lifecycle events
+             * Default: true
+             *
+             * Useful for single-activity apps using Navigation Component or manual
+             * Fragment transactions. Each Fragment transition will be recorded as a span.
+             *
+             * Uncomment to disable:
+             * enableFragmentInstrumentation = false
              */
 
             /**
