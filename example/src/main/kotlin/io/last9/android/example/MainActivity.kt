@@ -1,7 +1,9 @@
 package io.last9.android.example
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import io.last9.android.rum.Last9
 import okhttp3.Call
@@ -20,10 +22,12 @@ private const val TAG = "MainActivity"
  * 1. Manual span creation for custom user actions
  * 2. Automatic HTTP request instrumentation with OkHttp interceptor
  * 3. Distributed tracing context propagation (W3C traceparent headers)
+ * 4. Activity lifecycle tracking across multiple Activities
  *
  * What you'll see in Last9 dashboard:
  * - A span for "user-action.app-open" when the activity opens
  * - A span for the HTTP GET request to httpbin.org with full request/response details
+ * - Activity lifecycle events (Created, Resumed, Paused, Stopped) for each Activity
  * - Both spans will be part of the same trace, showing the complete user journey
  */
 class MainActivity : AppCompatActivity() {
@@ -69,13 +73,32 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
 
         // ============================================================
         // EXAMPLE 1: MANUAL SPAN CREATION
         // ============================================================
 
         /**
-         * Creating custom spans for user actions.
+         * Note: Screen view tracking is now AUTOMATIC!
+         *
+         * We no longer need to manually create "screen.view" spans in each Activity.
+         * The SDK automatically tracks all Activity lifecycle events via
+         * rumInstance.enableAutomaticScreenTracking(this) in ExampleApplication.
+         *
+         * What you'll see automatically in Last9:
+         * - "screen.view" span with screen.name = "MainActivity"
+         * - Activity lifecycle events: Created, Resumed, Paused, etc.
+         *
+         * This scales to 50+ Activities without any code changes!
+         */
+
+        // ============================================================
+        // MANUAL NAVIGATION TRACKING (OPTIONAL)
+        // ============================================================
+
+        /**
+         * You can still create manual spans for specific user actions.
          *
          * Use manual spans to track:
          * - User interactions (button clicks, navigation, gestures)
@@ -83,23 +106,33 @@ class MainActivity : AppCompatActivity() {
          * - Performance-critical code paths
          *
          * Best practices:
-         * - Use descriptive span names: "category.action" format (e.g., "video.playback")
+         * - Use descriptive span names: "category.action" format
          * - Add attributes for context (user ID, item ID, parameters)
          * - Always call .end() to complete the span
-         * - Use try/finally to ensure spans are ended even on errors
-         *
-         * What gets captured automatically:
-         * - Start timestamp
-         * - End timestamp
-         * - Duration (calculated)
-         * - Parent trace context (if within another span)
-         * - All custom attributes you add
          */
         val tracer = Last9.getInstance().getTracer()
-        val span = tracer.spanBuilder("user-action.app-open")
-            .setAttribute("user.id", "demo-user-123")
-            .startSpan()
-        span.end()
+
+        findViewById<Button>(R.id.btnNavigateToSecond).setOnClickListener {
+            Log.d(TAG, "Navigating to SecondActivity")
+            val navigationSpan = tracer.spanBuilder("user-action.navigate")
+                .setAttribute("from.screen", "MainActivity")
+                .setAttribute("to.screen", "SecondActivity")
+                .startSpan()
+            navigationSpan.end()
+
+            startActivity(Intent(this, SecondActivity::class.java))
+        }
+
+        findViewById<Button>(R.id.btnNavigateToThird).setOnClickListener {
+            Log.d(TAG, "Navigating to ThirdActivity")
+            val navigationSpan = tracer.spanBuilder("user-action.navigate")
+                .setAttribute("from.screen", "MainActivity")
+                .setAttribute("to.screen", "ThirdActivity")
+                .startSpan()
+            navigationSpan.end()
+
+            startActivity(Intent(this, ThirdActivity::class.java))
+        }
 
         // Alternative pattern with try/finally (recommended for longer operations):
         // val span = tracer.spanBuilder("user-action.checkout").startSpan()

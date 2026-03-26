@@ -74,6 +74,21 @@ class Last9Options {
     var enableAnrDetection: Boolean = true
 
     /**
+     * Capture Activity lifecycle events (onCreate, onStart, onResume, onPause, onStop, onDestroy).
+     * When enabled, every Activity transition will be recorded as a span with screen.name attribute.
+     * Default: true.
+     */
+    var enableActivityInstrumentation: Boolean = true
+
+    /**
+     * Capture Fragment lifecycle events.
+     * Useful for tracking navigation within single-activity architectures.
+     * When enabled, Fragment transitions will be recorded as spans with screen.name attribute.
+     * Default: true.
+     */
+    var enableFragmentInstrumentation: Boolean = true
+
+    /**
      * Automatically create CLIENT spans and inject W3C traceparent headers
      * for all OkHttp requests. When enabled, call [Last9RumInstance.createOkHttpInterceptor]
      * and add it to your OkHttpClient. Default: true.
@@ -152,6 +167,8 @@ class Last9Options {
         "Last9Options(serviceName=$serviceName, baseUrl=$baseUrl, " +
             "token=***, enableCrashReporting=$enableCrashReporting, " +
             "enableAnrDetection=$enableAnrDetection, " +
+            "enableActivityInstrumentation=$enableActivityInstrumentation, " +
+            "enableFragmentInstrumentation=$enableFragmentInstrumentation, " +
             "enableOkHttpInstrumentation=$enableOkHttpInstrumentation, " +
             "debugMode=$debugMode)"
 }
