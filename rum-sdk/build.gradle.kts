@@ -11,6 +11,7 @@ android {
     defaultConfig {
         minSdk = 24
         buildConfigField("String", "SDK_VERSION", "\"0.2.0\"")
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildFeatures {

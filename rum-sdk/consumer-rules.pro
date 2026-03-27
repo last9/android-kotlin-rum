@@ -14,3 +14,8 @@
 
 -dontwarn io.opentelemetry.**
 -dontwarn io.opentelemetry.android.**
+
+# Suppress Kotlin metadata warnings for transitive dependencies (Okio from OkHttp)
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn kotlin.Metadata
