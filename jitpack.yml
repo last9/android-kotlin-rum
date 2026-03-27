@@ -1,2 +1,4 @@
 jdk:
   - openjdk17
+install:
+  - ./gradlew :rum-sdk:build :rum-sdk:publishToMavenLocal -x test -x lint
