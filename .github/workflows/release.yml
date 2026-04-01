@@ -1,0 +1,90 @@
+name: Release on Version Change
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR merge commit
+        env:
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          git fetch origin main
+          git checkout "$MERGE_SHA"
+
+      - name: Check if version changed
+        id: version_change
+        env:
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          PREV_COMMIT=$(git rev-parse "${MERGE_SHA}^")
+          OLD_VERSION=$(git show "${PREV_COMMIT}:rum-sdk/build.gradle.kts" | grep -oP 'coordinates\("io\.last9", "kotlin-rum-sdk", "\K[^"]+') || true
+          NEW_VERSION=$(grep -oP 'coordinates\("io\.last9", "kotlin-rum-sdk", "\K[^"]+' rum-sdk/build.gradle.kts)
+          echo "old_version=$OLD_VERSION" >> "$GITHUB_OUTPUT"
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          if [ -n "$OLD_VERSION" ] && [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up JDK 17
+        if: steps.version_change.outputs.changed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Run tests
+        if: steps.version_change.outputs.changed == 'true'
+        run: ./gradlew :rum-sdk:test
+
+      - name: Publish to Maven Central
+        if: steps.version_change.outputs.changed == 'true'
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.OSSRH_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.OSSRH_TOKEN }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSPHRASE }}
+        run: ./gradlew :rum-sdk:publishAndReleaseToMavenCentral --no-configuration-cache
+
+      - name: Create tag
+        if: steps.version_change.outputs.changed == 'true'
+        env:
+          NEW_VERSION: ${{ steps.version_change.outputs.new_version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${NEW_VERSION}"
+          git push origin "v${NEW_VERSION}"
+
+      - name: Build release AAR
+        if: steps.version_change.outputs.changed == 'true'
+        run: ./gradlew :rum-sdk:assembleRelease
+
+      - name: Create GitHub Release
+        if: steps.version_change.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSION: ${{ steps.version_change.outputs.new_version }}
+        run: |
+          gh release create "v${NEW_VERSION}" \
+            --title "v${NEW_VERSION}" \
+            --generate-notes \
+            rum-sdk/build/outputs/aar/rum-sdk-release.aar
