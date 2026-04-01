@@ -334,7 +334,7 @@ Last9.init(this) {
 **Requirements:** JDK 11+, Android SDK (API 36), Android Studio Ladybug or later.
 
 ```bash
-git clone https://github.com/last9/android-rum.git
+git clone https://github.com/last9/android-kotlin-rum.git
 cd android-rum
 
 # Run unit tests

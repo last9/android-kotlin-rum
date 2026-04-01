@@ -85,7 +85,7 @@ mavenPublishing {
     pom {
         name.set("Last9 Android RUM SDK")
         description.set("Real User Monitoring SDK for Android, built on OpenTelemetry")
-        url.set("https://github.com/last9/android-rum")
+        url.set("https://github.com/last9/android-kotlin-rum")
 
         licenses {
             license {
@@ -104,9 +104,9 @@ mavenPublishing {
         }
 
         scm {
-            connection.set("scm:git:git://github.com/last9/android-rum.git")
-            developerConnection.set("scm:git:ssh://github.com:last9/android-rum.git")
-            url.set("https://github.com/last9/android-rum")
+            connection.set("scm:git:git://github.com/last9/android-kotlin-rum.git")
+            developerConnection.set("scm:git:ssh://github.com:last9/android-kotlin-rum.git")
+            url.set("https://github.com/last9/android-kotlin-rum")
         }
     }
 }
