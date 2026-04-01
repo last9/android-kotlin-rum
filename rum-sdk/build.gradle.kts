@@ -9,6 +9,10 @@ plugins {
 
 val sdkVersion = "0.2.1"
 
+tasks.register("printVersion") {
+    doLast { println(sdkVersion) }
+}
+
 android {
     namespace = "io.last9.android.rum"
     compileSdk = 36
