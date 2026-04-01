@@ -73,8 +73,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${NEW_VERSION}"
-          git push origin "v${NEW_VERSION}"
+          git tag "v${NEW_VERSION}" 2>/dev/null || true
+          git push origin "v${NEW_VERSION}" 2>/dev/null || true
 
       - name: Build release AAR
         if: steps.version_change.outputs.changed == 'true'
@@ -89,4 +89,4 @@ jobs:
           gh release create "v${NEW_VERSION}" \
             --title "v${NEW_VERSION}" \
             --generate-notes \
-            rum-sdk/build/outputs/aar/rum-sdk-release.aar
+            rum-sdk/build/outputs/aar/rum-sdk-release.aar 2>/dev/null || true
