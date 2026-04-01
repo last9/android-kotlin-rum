@@ -76,7 +76,7 @@ class Last9OptionsTest {
             serviceName = "my-app"
         }
         assertEquals(
-            "https://otlp.last9.io/telemetry/beacon/v1/traces",
+            "YOUR_OTLP_ENDPOINT/telemetry/beacon/v1/traces",
             options.tracesEndpoint(),
         )
     }
