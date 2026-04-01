@@ -7,11 +7,7 @@ plugins {
     alias(libs.plugins.maven.publish)
 }
 
-val sdkVersion = "0.2.1"
-
-tasks.register("printVersion") {
-    doLast { println(sdkVersion) }
-}
+val sdkVersion = property("VERSION_NAME") as String
 
 android {
     namespace = "io.last9.android.rum"
