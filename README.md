@@ -1,5 +1,6 @@
 # Last9 Android RUM SDK
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.last9/kotlin-rum-sdk)](https://central.sonatype.com/artifact/io.last9/kotlin-rum-sdk)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Android API](https://img.shields.io/badge/API-24%2B-brightgreen.svg)](https://developer.android.com/about/versions/nougat)
 
@@ -20,21 +21,10 @@ Open-source Real User Monitoring (RUM) SDK for Android, built on [OpenTelemetry]
 
 ### 1. Add dependency
 
-The SDK is not yet published to Maven Central. For now, use JitPack:
-
 ```kotlin
-// settings.gradle.kts
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven("https://jitpack.io")
-    }
-}
-
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.last9:android-kotlin-rum:v0.2.0")
+    implementation("io.last9:kotlin-rum-sdk:0.2.0")
 }
 ```
 
@@ -345,7 +335,7 @@ Last9.init(this) {
 
 ```bash
 git clone https://github.com/last9/android-kotlin-rum.git
-cd android-kotlin-rum
+cd android-rum
 
 # Run unit tests
 ./gradlew :rum-sdk:test
@@ -428,7 +418,7 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 
 ```bash
 # Fork and clone
-git clone https://github.com/<you>/android-kotlin-rum.git
+git clone https://github.com/<you>/android-rum.git
 
 # Create a branch
 git checkout -b my-feature

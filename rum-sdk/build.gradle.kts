@@ -1,8 +1,13 @@
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    `maven-publish`
+    alias(libs.plugins.maven.publish)
 }
+
+val sdkVersion = "0.2.0"
 
 android {
     namespace = "io.last9.android.rum"
@@ -10,7 +15,7 @@ android {
 
     defaultConfig {
         minSdk = 24
-        buildConfigField("String", "SDK_VERSION", "\"0.2.0\"")
+        buildConfigField("String", "SDK_VERSION", "\"$sdkVersion\"")
         consumerProguardFiles("consumer-rules.pro")
     }
 
@@ -31,12 +36,6 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
-    }
-
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-        }
     }
 }
 
@@ -71,28 +70,43 @@ dependencies {
     testImplementation(libs.opentelemetry.sdk.testing)
 }
 
-publishing {
-    publications {
-        register<MavenPublication>("release") {
-            groupId = "io.last9.android"
-            artifactId = "rum-sdk"
-            version = "0.2.0"
+mavenPublishing {
+    configure(AndroidSingleVariantLibrary(
+        variant = "release",
+        sourcesJar = true,
+        publishJavadocJar = true,
+    ))
 
-            afterEvaluate {
-                from(components["release"])
-            }
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
 
-            pom {
-                name.set("Last9 Android RUM SDK")
-                description.set("Real User Monitoring SDK for Android, built on OpenTelemetry")
-                url.set("https://github.com/last9/android-rum")
-                licenses {
-                    license {
-                        name.set("Apache-2.0")
-                        url.set("https://www.apache.org/licenses/LICENSE-2.0")
-                    }
-                }
+    coordinates("io.last9", "kotlin-rum-sdk", sdkVersion)
+
+    pom {
+        name.set("Last9 Android RUM SDK")
+        description.set("Real User Monitoring SDK for Android, built on OpenTelemetry")
+        url.set("https://github.com/last9/android-kotlin-rum")
+
+        licenses {
+            license {
+                name.set("Apache-2.0")
+                url.set("https://www.apache.org/licenses/LICENSE-2.0")
             }
+        }
+
+        developers {
+            developer {
+                name.set("Last9")
+                email.set("support@last9.io")
+                organization.set("Last9")
+                organizationUrl.set("https://last9.io")
+            }
+        }
+
+        scm {
+            connection.set("scm:git:git://github.com/last9/android-kotlin-rum.git")
+            developerConnection.set("scm:git:ssh://github.com:last9/android-kotlin-rum.git")
+            url.set("https://github.com/last9/android-kotlin-rum")
         }
     }
 }
