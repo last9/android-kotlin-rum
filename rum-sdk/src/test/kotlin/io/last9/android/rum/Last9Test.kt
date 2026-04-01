@@ -61,6 +61,7 @@ class Last9Test {
                 val instance = Last9.init(app) {
                     token = "tok"
                     serviceName = "svc"
+                    baseUrl = "https://localhost:4318"
                 }
                 synchronized(results) { results.add(instance) }
             }
@@ -83,15 +84,15 @@ class Last9Test {
 
     @Test
     fun `init returns same instance on second call`() {
-        val first = Last9.init(app) { token = "tok"; serviceName = "svc" }
-        val second = Last9.init(app) { token = "tok2"; serviceName = "svc2" }
+        val first = Last9.init(app) { token = "tok"; serviceName = "svc"; baseUrl = "https://localhost:4318" }
+        val second = Last9.init(app) { token = "tok2"; serviceName = "svc2"; baseUrl = "https://localhost:4318" }
 
         assertSame(first, second)
     }
 
     @Test
     fun `getInstance returns the initialized instance`() {
-        val init = Last9.init(app) { token = "tok"; serviceName = "svc" }
+        val init = Last9.init(app) { token = "tok"; serviceName = "svc"; baseUrl = "https://localhost:4318" }
         val get = Last9.getInstance()
 
         assertSame(init, get)
@@ -103,6 +104,7 @@ class Last9Test {
         val instance = Last9.init(app) {
             token = "tok"
             serviceName = "svc"
+            baseUrl = "https://localhost:4318"
             enableOkHttpInstrumentation = false
         }
 
@@ -132,7 +134,7 @@ class Last9Test {
         } catch (_: IllegalArgumentException) { }
 
         // After a failed init, a valid init must succeed
-        val instance = Last9.init(app) { token = "tok"; serviceName = "svc" }
+        val instance = Last9.init(app) { token = "tok"; serviceName = "svc"; baseUrl = "https://localhost:4318" }
         assertNotNull(instance)
         assertSame(instance, Last9.getInstance())
     }
