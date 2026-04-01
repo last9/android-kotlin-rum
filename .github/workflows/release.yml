@@ -26,25 +26,14 @@ jobs:
           git fetch origin main
           git checkout "$MERGE_SHA"
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-          cache: gradle
-
       - name: Check if version changed
         id: version_change
         env:
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
-          NEW_VERSION=$(./gradlew :rum-sdk:printVersion -q)
           PREV_COMMIT=$(git rev-parse "${MERGE_SHA}^")
-          git stash --include-untracked || true
-          git checkout "$PREV_COMMIT" -- rum-sdk/build.gradle.kts
-          OLD_VERSION=$(./gradlew :rum-sdk:printVersion -q) || true
-          git checkout "$MERGE_SHA" -- rum-sdk/build.gradle.kts
-          git stash pop || true
+          OLD_VERSION=$(git show "${PREV_COMMIT}:gradle.properties" | grep '^VERSION_NAME=' | cut -d= -f2) || true
+          NEW_VERSION=$(grep '^VERSION_NAME=' gradle.properties | cut -d= -f2)
           echo "old_version=$OLD_VERSION"
           echo "new_version=$NEW_VERSION"
           echo "old_version=$OLD_VERSION" >> "$GITHUB_OUTPUT"
@@ -54,6 +43,14 @@ jobs:
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Set up JDK 17
+        if: steps.version_change.outputs.changed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
 
       - name: Run tests
         if: steps.version_change.outputs.changed == 'true'
