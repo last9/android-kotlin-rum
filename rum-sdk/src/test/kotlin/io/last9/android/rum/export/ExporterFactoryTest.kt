@@ -11,6 +11,7 @@ class ExporterFactoryTest {
         Last9Options().apply {
             token = "test-token"
             serviceName = "test-service"
+            baseUrl = "https://localhost:4318"
             block()
         }
 
