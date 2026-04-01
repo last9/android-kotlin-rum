@@ -7,7 +7,7 @@ plugins {
     alias(libs.plugins.maven.publish)
 }
 
-val sdkVersion = "0.2.0"
+val sdkVersion = "0.2.1"
 
 android {
     namespace = "io.last9.android.rum"
