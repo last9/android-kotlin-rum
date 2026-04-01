@@ -24,7 +24,7 @@ Open-source Real User Monitoring (RUM) SDK for Android, built on [OpenTelemetry]
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("io.last9:kotlin-rum-sdk:0.2.1")
+    implementation("io.last9:kotlin-rum-sdk:0.2.2")
 }
 ```
 
