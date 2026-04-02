@@ -1,6 +1,7 @@
 package io.last9.android.rum.instrumentation
 
 import io.last9.android.rum.BuildConfig
+import io.last9.android.rum.internal.BreadcrumbStore
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.trace.SpanKind
 import io.opentelemetry.api.trace.StatusCode
@@ -72,10 +73,12 @@ class OkHttpInstrumentation internal constructor(
                 if (response.code >= 400) {
                     span.setStatus(StatusCode.ERROR, "HTTP ${response.code}")
                 }
+                BreadcrumbStore.add("http", "${original.method} ${response.code} ${original.url.encodedPath}")
                 response
             } catch (e: Throwable) {
                 span.setStatus(StatusCode.ERROR, e.message ?: "Network error")
                 span.recordException(e)
+                BreadcrumbStore.add("http", "${original.method} ERR ${original.url.encodedPath}")
                 throw e
             } finally {
                 span.end()

@@ -73,6 +73,7 @@ object Last9 {
         synchronized(this) {
             instance = null
             SessionStore.reset()
+            io.last9.android.rum.internal.BreadcrumbStore.reset()
         }
     }
 

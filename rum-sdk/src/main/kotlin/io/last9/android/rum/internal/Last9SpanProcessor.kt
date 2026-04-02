@@ -8,10 +8,7 @@ import io.opentelemetry.sdk.trace.SpanProcessor
 
 /**
  * Injects session, view, and user attributes on every span.
- *
- * Analog of the browser SDK's `SessionSpanProcessor` which calls
- * `injectSessionAttributes()`, `injectUserAttributes()`, and
- * `injectGlobalSpanAttributes()` on every span start.
+ * Attaches breadcrumb trail on crash/ANR spans.
  */
 internal class Last9SpanProcessor : SpanProcessor {
 
@@ -38,9 +35,22 @@ internal class Last9SpanProcessor : SpanProcessor {
                 span.setAttribute(SemanticConventions.USER_ROLES, it.joinToString(","))
             }
         }
+
+        // Attach breadcrumbs to crash/ANR spans so you can see what
+        // the user was doing leading up to the error.
+        if (isCrashOrAnrSpan(span.name)) {
+            BreadcrumbStore.toJson()?.let {
+                span.setAttribute(BreadcrumbStore.BREADCRUMBS_KEY, it)
+            }
+        }
     }
 
     override fun onEnd(span: ReadableSpan) {}
     override fun isStartRequired() = true
     override fun isEndRequired() = false
+
+    private fun isCrashOrAnrSpan(name: String): Boolean {
+        val lower = name.lowercase()
+        return lower.contains("crash") || lower.contains("anr") || lower.contains("exception")
+    }
 }

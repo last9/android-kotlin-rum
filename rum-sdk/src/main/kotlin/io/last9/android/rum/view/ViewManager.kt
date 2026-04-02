@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.os.Bundle
 import android.util.Log
+import io.last9.android.rum.internal.BreadcrumbStore
 import io.last9.android.rum.internal.SemanticConventions
 import io.last9.android.rum.session.SessionStore
 import io.opentelemetry.api.trace.Span
@@ -119,6 +120,7 @@ internal class ViewManager(
         currentViewSpan = span
         SessionStore.setCurrentView(viewId, name)
         SessionStore.updateSessionActivity()
+        BreadcrumbStore.add("view", name)
 
         if (debugMode) Log.d(TAG, "View started: $name (viewId=$viewId)")
     }
