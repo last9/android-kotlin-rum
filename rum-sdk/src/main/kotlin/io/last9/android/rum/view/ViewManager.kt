@@ -77,7 +77,7 @@ internal class ViewManager(
                 .setAttribute(SemanticConventions.VIEW_NAME, name)
                 .startSpan()
 
-            val viewId = span.spanContext().traceId
+            val viewId = span.spanContext.traceId
             span.setAttribute(SemanticConventions.VIEW_ID, viewId)
             span.setStatus(StatusCode.OK)
 

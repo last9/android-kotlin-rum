@@ -89,7 +89,7 @@ internal class SessionManager(
             .setSpanKind(SpanKind.INTERNAL)
             .startSpan()
 
-        val sessionId = startSpan.spanContext().traceId
+        val sessionId = startSpan.spanContext.traceId
         if (previousId != null) {
             startSpan.setAttribute(SemanticConventions.SESSION_PREVIOUS_ID, previousId)
         }
