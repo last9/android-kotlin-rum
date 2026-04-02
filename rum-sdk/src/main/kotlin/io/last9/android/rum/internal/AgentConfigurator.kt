@@ -26,6 +26,11 @@ private object InstrumentationNames {
     const val ANR = "anr"
     const val ACTIVITY = "activity"
     const val FRAGMENT = "fragment"
+    // Suppress the agent's built-in session tracking — Last9's SessionManager
+    // provides its own session.id (traceId of "Session Start" span) with
+    // timeout-based rollover and persistence. Without suppression, the agent
+    // would write a conflicting session.id on every span.
+    const val SESSIONS = "sessions"
 }
 
 /**
@@ -52,6 +57,9 @@ internal object AgentConfigurator {
 
         val rumConfig = OtelRumConfig().apply {
             setDiskBufferingConfig(DiskBufferingConfig.create(false))
+
+            // Always suppress the agent's sessions — Last9's SessionManager owns session.id
+            suppressInstrumentation(InstrumentationNames.SESSIONS)
 
             if (!options.enableCrashReporting) suppressInstrumentation(InstrumentationNames.CRASH)
             if (!options.enableAnrDetection) suppressInstrumentation(InstrumentationNames.ANR)

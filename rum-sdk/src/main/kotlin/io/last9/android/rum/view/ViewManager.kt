@@ -28,7 +28,7 @@ private const val TAG = "Last9View"
 internal class ViewManager(
     private val tracer: Tracer,
     private val debugMode: Boolean,
-    internal var onResume: (() -> Unit)? = null,
+    internal val onResume: (() -> Unit)? = null,
 ) : Application.ActivityLifecycleCallbacks {
 
     private var currentViewSpan: Span? = null
@@ -46,46 +46,27 @@ internal class ViewManager(
         val activityName = activity.javaClass.simpleName
         synchronized(viewLock) {
             if (currentViewName == activityName && currentViewSpan != null) {
+                // Same activity resumed (e.g. returning from another app) — keep the view
                 SessionStore.updateSessionActivity()
                 return
             }
-            endCurrentView()
-            startView(activityName)
+            // Different activity — end old view, start new one
+            endCurrentViewLocked()
+            startViewLocked(activityName)
         }
     }
 
     override fun onActivityPaused(activity: Activity) {
-        synchronized(viewLock) {
-            if (currentViewName == activity.javaClass.simpleName) {
-                endCurrentView()
-            }
-        }
+        // Don't end the view on pause — the view spans the time the user is on
+        // this screen. It ends when a different Activity resumes (in onActivityResumed)
+        // or on session rollover. This preserves error/resource counts across
+        // brief pauses (e.g. going to recents and coming back).
     }
 
     fun startView(name: String) {
         synchronized(viewLock) {
-            endCurrentView()
-
-            currentViewStartTime = System.currentTimeMillis()
-            currentViewName = name
-            errorCount.set(0)
-            resourceCount.set(0)
-
-            val span = tracer.spanBuilder(SemanticConventions.VIEW_SPAN_NAME)
-                .setNoParent()
-                .setSpanKind(SpanKind.INTERNAL)
-                .setAttribute(SemanticConventions.VIEW_NAME, name)
-                .startSpan()
-
-            val viewId = span.spanContext.traceId
-            span.setAttribute(SemanticConventions.VIEW_ID, viewId)
-            span.setStatus(StatusCode.OK)
-
-            currentViewSpan = span
-            SessionStore.setCurrentView(viewId, name)
-            SessionStore.updateSessionActivity()
-
-            if (debugMode) Log.d(TAG, "View started: $name (viewId=$viewId)")
+            endCurrentViewLocked()
+            startViewLocked(name)
         }
     }
 
@@ -99,23 +80,7 @@ internal class ViewManager(
 
     fun endCurrentView() {
         synchronized(viewLock) {
-            val span = currentViewSpan ?: return
-            val startTime = currentViewStartTime
-
-            if (startTime != null) {
-                val timeSpent = System.currentTimeMillis() - startTime
-                span.setAttribute(SemanticConventions.VIEW_TIME_SPENT, timeSpent)
-            }
-            span.setAttribute(SemanticConventions.VIEW_ERROR_COUNT, errorCount.get())
-            span.setAttribute(SemanticConventions.VIEW_RESOURCE_COUNT, resourceCount.get())
-            span.end()
-
-            if (debugMode) Log.d(TAG, "View ended: $currentViewName")
-
-            currentViewSpan = null
-            currentViewStartTime = null
-            currentViewName = null
-            SessionStore.setCurrentView(null, null)
+            endCurrentViewLocked()
         }
     }
 
@@ -127,11 +92,56 @@ internal class ViewManager(
     fun onSessionRollover() {
         synchronized(viewLock) {
             val savedName = currentViewName
-            endCurrentView()
+            endCurrentViewLocked()
             if (savedName != null) {
-                startView(savedName)
+                startViewLocked(savedName)
             }
         }
+    }
+
+    // ── Internal (must be called under viewLock) ────────────────
+
+    private fun startViewLocked(name: String) {
+        currentViewStartTime = System.currentTimeMillis()
+        currentViewName = name
+        errorCount.set(0)
+        resourceCount.set(0)
+
+        val span = tracer.spanBuilder(SemanticConventions.VIEW_SPAN_NAME)
+            .setNoParent()
+            .setSpanKind(SpanKind.INTERNAL)
+            .setAttribute(SemanticConventions.VIEW_NAME, name)
+            .startSpan()
+
+        val viewId = span.spanContext.traceId
+        span.setAttribute(SemanticConventions.VIEW_ID, viewId)
+        span.setStatus(StatusCode.OK)
+
+        currentViewSpan = span
+        SessionStore.setCurrentView(viewId, name)
+        SessionStore.updateSessionActivity()
+
+        if (debugMode) Log.d(TAG, "View started: $name (viewId=$viewId)")
+    }
+
+    private fun endCurrentViewLocked() {
+        val span = currentViewSpan ?: return
+        val startTime = currentViewStartTime
+
+        if (startTime != null) {
+            val timeSpent = System.currentTimeMillis() - startTime
+            span.setAttribute(SemanticConventions.VIEW_TIME_SPENT, timeSpent)
+        }
+        span.setAttribute(SemanticConventions.VIEW_ERROR_COUNT, errorCount.get())
+        span.setAttribute(SemanticConventions.VIEW_RESOURCE_COUNT, resourceCount.get())
+        span.end()
+
+        if (debugMode) Log.d(TAG, "View ended: $currentViewName")
+
+        currentViewSpan = null
+        currentViewStartTime = null
+        currentViewName = null
+        SessionStore.setCurrentView(null, null)
     }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}

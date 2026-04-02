@@ -128,14 +128,14 @@ class Last9Options {
      * After this duration, the session rolls over (end + start new).
      * Default: 4 hours (matches browser SDK).
      */
-    var sessionMaxDurationMs: Long = 4L * 60 * 60 * 1000
+    var sessionMaxDurationMs: Long = io.last9.android.rum.session.SessionConstants.MAX_SESSION_DURATION_MS
 
     /**
      * Session inactivity timeout in milliseconds.
      * If the app is inactive for this long, the session rolls over on next resume.
      * Default: 30 minutes (matches browser SDK).
      */
-    var sessionInactivityTimeoutMs: Long = 30L * 60 * 1000
+    var sessionInactivityTimeoutMs: Long = io.last9.android.rum.session.SessionConstants.SESSION_INACTIVITY_TIMEOUT_MS
 
     // -------------------------------------------------------------------------
     // Internal helpers

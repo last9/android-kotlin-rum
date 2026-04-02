@@ -86,9 +86,18 @@ object Last9 {
         val otelRum = AgentConfigurator.configure(app, options)
         val tracer = otelRum.openTelemetry.getTracer("io.last9.android.rum")
 
-        val viewManager = ViewManager(tracer, options.debugMode)
+        // Resolve circular dependency: ViewManager needs sessionManager for
+        // resume checks, SessionManager needs viewManager for rollover.
+        // Both lambdas capture the local var and are only invoked during
+        // Activity lifecycle callbacks (long after buildInstance returns).
+        var sessionManager: SessionManager? = null
+        val viewManager = ViewManager(
+            tracer = tracer,
+            debugMode = options.debugMode,
+            onResume = { sessionManager?.checkAndMaybeRollover() },
+        )
 
-        val sessionManager = SessionManager(
+        sessionManager = SessionManager(
             tracer = tracer,
             debugMode = options.debugMode,
             maxDurationMs = options.sessionMaxDurationMs,
@@ -96,10 +105,6 @@ object Last9 {
             onSessionRollover = { viewManager.onSessionRollover() },
         )
 
-        // Wire session resume check into view manager's onActivityResumed
-        viewManager.onResume = { sessionManager.checkAndMaybeRollover() }
-
-        // Start session (checks persistence, may restore or create new)
         sessionManager.start()
 
         return Last9RumInstance(otelRum, options, viewManager)

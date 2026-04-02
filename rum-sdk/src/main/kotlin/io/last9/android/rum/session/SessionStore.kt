@@ -24,6 +24,9 @@ internal object SessionStore {
     @Volatile private var currentUser: UserInfo? = null
 
     private var prefs: SharedPreferences? = null
+    private var lastPersistedAt: Long = 0L
+
+    private const val PERSIST_DEBOUNCE_MS = 5_000L
 
     fun init(context: Context) {
         prefs = context.getSharedPreferences(
@@ -31,39 +34,34 @@ internal object SessionStore {
         )
     }
 
-    // ── Session ─────────────────────────────────────────────────
+    // ── Session (batch) ─────────────────────────────────────────
 
-    fun setCurrentSessionId(id: String?) {
+    /**
+     * Set all session fields atomically (single SharedPreferences write).
+     * Use this instead of individual setters during session start/restore.
+     */
+    fun setSession(id: String, previousId: String?, startedAt: Long, lastActivityAt: Long) {
         currentSessionId = id
+        previousSessionId = previousId
+        sessionStartedAt = startedAt
+        sessionLastActivityAt = lastActivityAt
         persistToPrefs()
     }
 
     fun getCurrentSessionId(): String? = currentSessionId
-
-    fun setPreviousSessionId(id: String?) {
-        previousSessionId = id
-        persistToPrefs()
-    }
-
     fun getPreviousSessionId(): String? = previousSessionId
 
-    fun setSessionStartedAt(ts: Long?) {
-        sessionStartedAt = ts
-        persistToPrefs()
-    }
-
-    fun getSessionStartedAt(): Long? = sessionStartedAt
-
-    fun setSessionLastActivityAt(ts: Long?) {
-        sessionLastActivityAt = ts
-        persistToPrefs()
-    }
-
-    fun getSessionLastActivityAt(): Long? = sessionLastActivityAt
-
+    /**
+     * Update the last-activity timestamp (in-memory always, persisted with debounce).
+     * Sub-second precision is unnecessary for cross-restart inactivity detection.
+     */
     fun updateSessionActivity() {
-        sessionLastActivityAt = System.currentTimeMillis()
-        persistToPrefs()
+        val now = System.currentTimeMillis()
+        sessionLastActivityAt = now
+        if (now - lastPersistedAt >= PERSIST_DEBOUNCE_MS) {
+            lastPersistedAt = now
+            persistToPrefs()
+        }
     }
 
     // ── Persistence ─────────────────────────────────────────────
@@ -127,6 +125,7 @@ internal object SessionStore {
         currentViewId = null
         currentViewName = null
         currentUser = null
+        lastPersistedAt = 0L
         clearPersistedSession()
     }
 }

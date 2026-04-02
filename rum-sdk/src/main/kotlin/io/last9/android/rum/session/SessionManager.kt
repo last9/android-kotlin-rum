@@ -13,6 +13,9 @@ private const val TAG = "Last9Session"
 /**
  * Full session lifecycle manager matching the browser SDK's `SessionManager`.
  *
+ * All public methods must be called on the main thread (Android lifecycle
+ * callbacks and Handler posts guarantee this).
+ *
  * - Emits "Session Start" and "Session End" spans
  * - session.id = traceId of the "Session Start" span (browser convention)
  * - Timeout-based rollover (max duration + inactivity)
@@ -47,7 +50,6 @@ internal class SessionManager(
             val expiredByInactivity = inactiveFor >= inactivityTimeoutMs
 
             if (!expiredByDuration && !expiredByInactivity) {
-                // Restore existing session — it's still valid
                 if (debugMode) Log.d(TAG, "Restoring session ${persisted.id} (elapsed=${elapsed}ms)")
 
                 current = SessionInfo(
@@ -58,17 +60,13 @@ internal class SessionManager(
                     state = SessionState.ACTIVE,
                 )
 
-                SessionStore.setPreviousSessionId(persisted.previousId)
-                SessionStore.setCurrentSessionId(persisted.id)
-                SessionStore.setSessionStartedAt(persisted.startedAt)
-                SessionStore.setSessionLastActivityAt(now)
+                SessionStore.setSession(persisted.id, persisted.previousId, persisted.startedAt, now)
 
                 val remaining = maxDurationMs - elapsed
                 scheduleRolloverIn(minOf(remaining, inactivityTimeoutMs))
                 return
             }
 
-            // Persisted session expired — use it as previousId
             if (debugMode) {
                 val reason = if (expiredByInactivity) "inactivity" else "max_duration"
                 Log.d(TAG, "Persisted session ${persisted.id} expired ($reason)")
@@ -105,17 +103,14 @@ internal class SessionManager(
             state = SessionState.ACTIVE,
         )
 
-        SessionStore.setPreviousSessionId(previousId)
-        SessionStore.setCurrentSessionId(sessionId)
-        SessionStore.setSessionStartedAt(now)
-        SessionStore.setSessionLastActivityAt(now)
+        SessionStore.setSession(sessionId, previousId, now, now)
 
         if (debugMode) Log.d(TAG, "Session started: $sessionId (previous=$previousId)")
 
         scheduleRollover()
     }
 
-    fun end(reason: String = "exit") {
+    fun end(endState: SessionState = SessionState.ENDED) {
         val session = current ?: return
         if (session.state != SessionState.ACTIVE) return
 
@@ -130,25 +125,19 @@ internal class SessionManager(
         endSpan.setStatus(StatusCode.OK)
         endSpan.end()
 
-        current = session.copy(
-            state = if (reason == "expired") SessionState.EXPIRED else SessionState.ENDED
-        )
+        current = session.copy(state = endState)
         clearRollover()
 
-        if (debugMode) Log.d(TAG, "Session ended: ${session.id} ($reason, ${timeSpent}ms)")
+        if (debugMode) Log.d(TAG, "Session ended: ${session.id} ($endState, ${timeSpent}ms)")
     }
 
     fun rollover() {
         if (debugMode) Log.d(TAG, "Session rollover")
-        end("expired")
+        end(SessionState.EXPIRED)
         start()
         onSessionRollover?.invoke()
     }
 
-    /**
-     * Called on Activity resume to check if the session has expired due to inactivity.
-     * Cheap operation: two timestamp comparisons.
-     */
     fun checkAndMaybeRollover() {
         val session = current ?: return
         if (session.state != SessionState.ACTIVE) return
@@ -164,7 +153,6 @@ internal class SessionManager(
             }
             rollover()
         } else {
-            // Session still valid — update activity and reschedule
             current = session.copy(lastActivityAt = now)
             SessionStore.updateSessionActivity()
 
