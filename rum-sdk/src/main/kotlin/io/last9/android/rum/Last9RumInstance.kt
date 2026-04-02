@@ -82,7 +82,7 @@ class Last9RumInstance internal constructor(
      */
     fun identify(user: UserInfo?) {
         if (user == null) {
-            SessionStore.setCurrentUser(null)
+            clearUser()
             return
         }
         SessionStore.setCurrentUser(

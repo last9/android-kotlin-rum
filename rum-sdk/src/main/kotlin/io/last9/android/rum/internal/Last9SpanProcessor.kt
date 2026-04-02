@@ -16,7 +16,6 @@ import io.opentelemetry.sdk.trace.SpanProcessor
 internal class Last9SpanProcessor : SpanProcessor {
 
     override fun onStart(parentContext: Context, span: ReadWriteSpan) {
-        // Session context
         SessionStore.getCurrentSessionId()?.let {
             span.setAttribute(SemanticConventions.SESSION_ID, it)
         }
@@ -24,7 +23,6 @@ internal class Last9SpanProcessor : SpanProcessor {
             span.setAttribute(SemanticConventions.SESSION_PREVIOUS_ID, it)
         }
 
-        // View context
         SessionStore.getCurrentViewId()?.let {
             span.setAttribute(SemanticConventions.VIEW_ID, it)
         }
@@ -32,7 +30,6 @@ internal class Last9SpanProcessor : SpanProcessor {
             span.setAttribute(SemanticConventions.VIEW_NAME, it)
         }
 
-        // User context
         SessionStore.getCurrentUser()?.let { user ->
             user.id?.let { span.setAttribute(SemanticConventions.USER_ID, it) }
             user.name?.let { span.setAttribute(SemanticConventions.USER_NAME, it) }

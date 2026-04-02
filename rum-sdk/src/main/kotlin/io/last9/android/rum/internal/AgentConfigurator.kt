@@ -52,13 +52,11 @@ internal object AgentConfigurator {
             Log.d(TAG, "Fragment instrumentation: ${options.enableFragmentInstrumentation}")
         }
 
-        // Initialize session store (needs Context for SharedPreferences)
         SessionStore.init(app)
 
         val rumConfig = OtelRumConfig().apply {
             setDiskBufferingConfig(DiskBufferingConfig.create(false))
 
-            // Always suppress the agent's sessions — Last9's SessionManager owns session.id
             suppressInstrumentation(InstrumentationNames.SESSIONS)
 
             if (!options.enableCrashReporting) suppressInstrumentation(InstrumentationNames.CRASH)
@@ -80,7 +78,6 @@ internal object AgentConfigurator {
 
                 builder.setResource(Resource.getDefault().merge(last9Resource))
 
-                // Last9SpanProcessor injects session.id, view.id, user.* on every span
                 builder.addSpanProcessor(Last9SpanProcessor())
 
                 if (options.debugMode) {

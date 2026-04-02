@@ -40,7 +40,6 @@ internal class ViewManager(
     private val viewLock = Any()
 
     override fun onActivityResumed(activity: Activity) {
-        // Check session expiry before handling view transition
         onResume?.invoke()
 
         val activityName = activity.javaClass.simpleName

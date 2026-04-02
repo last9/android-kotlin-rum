@@ -39,7 +39,6 @@ internal class SessionManager(
             return
         }
 
-        // Check for persisted session from SharedPreferences
         val persisted = SessionStore.getPersistedSession()
         if (persisted != null) {
             val now = System.currentTimeMillis()
@@ -80,7 +79,6 @@ internal class SessionManager(
             )
         }
 
-        // Create new session
         val previousId = current?.id
         val startSpan = tracer.spanBuilder(SemanticConventions.SESSION_START_NAME)
             .setNoParent()
