@@ -2,6 +2,10 @@ package io.last9.android.rum
 
 import android.app.Application
 import io.last9.android.rum.internal.AgentConfigurator
+import io.last9.android.rum.session.SessionManager
+import io.last9.android.rum.session.SessionStore
+import io.last9.android.rum.session.UserInfo
+import io.last9.android.rum.view.ViewManager
 
 /**
  * Entry point for the Last9 Android RUM SDK.
@@ -56,11 +60,20 @@ object Last9 {
                 "Call Last9.init() in Application.onCreate() before using getInstance()."
         )
 
+    /** Convenience for [Last9RumInstance.identify]. */
+    fun identify(user: UserInfo?) = getInstance().identify(user)
+
+    /** Convenience for [Last9RumInstance.clearUser]. */
+    fun clearUser() = getInstance().clearUser()
+
     /**
      * Resets the SDK instance. Intended for use in tests only.
      */
     internal fun reset() {
-        synchronized(this) { instance = null }
+        synchronized(this) {
+            instance = null
+            SessionStore.reset()
+        }
     }
 
     private fun buildInstance(
@@ -69,7 +82,26 @@ object Last9 {
     ): Last9RumInstance {
         val options = Last9Options().apply(configure)
         options.validate()
+
         val otelRum = AgentConfigurator.configure(app, options)
-        return Last9RumInstance(otelRum, options)
+        val tracer = otelRum.openTelemetry.getTracer("io.last9.android.rum")
+
+        val viewManager = ViewManager(tracer, options.debugMode)
+
+        val sessionManager = SessionManager(
+            tracer = tracer,
+            debugMode = options.debugMode,
+            maxDurationMs = options.sessionMaxDurationMs,
+            inactivityTimeoutMs = options.sessionInactivityTimeoutMs,
+            onSessionRollover = { viewManager.onSessionRollover() },
+        )
+
+        // Wire session resume check into view manager's onActivityResumed
+        viewManager.onResume = { sessionManager.checkAndMaybeRollover() }
+
+        // Start session (checks persistence, may restore or create new)
+        sessionManager.start()
+
+        return Last9RumInstance(otelRum, options, viewManager)
     }
 }

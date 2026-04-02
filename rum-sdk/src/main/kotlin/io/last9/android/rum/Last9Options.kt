@@ -123,6 +123,20 @@ class Last9Options {
      */
     var additionalResourceAttributes: Map<String, String> = emptyMap()
 
+    /**
+     * Maximum session duration in milliseconds.
+     * After this duration, the session rolls over (end + start new).
+     * Default: 4 hours (matches browser SDK).
+     */
+    var sessionMaxDurationMs: Long = 4L * 60 * 60 * 1000
+
+    /**
+     * Session inactivity timeout in milliseconds.
+     * If the app is inactive for this long, the session rolls over on next resume.
+     * Default: 30 minutes (matches browser SDK).
+     */
+    var sessionInactivityTimeoutMs: Long = 30L * 60 * 1000
+
     // -------------------------------------------------------------------------
     // Internal helpers
     // -------------------------------------------------------------------------
