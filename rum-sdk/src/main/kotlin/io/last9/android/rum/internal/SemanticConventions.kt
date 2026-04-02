@@ -22,6 +22,7 @@ internal object SemanticConventions {
     // User
     val USER_ID: AttributeKey<String> = AttributeKey.stringKey("user.id")
     val USER_NAME: AttributeKey<String> = AttributeKey.stringKey("user.name")
+    val USER_FULL_NAME: AttributeKey<String> = AttributeKey.stringKey("user.full_name")
     val USER_EMAIL: AttributeKey<String> = AttributeKey.stringKey("user.email")
     val USER_ROLES: AttributeKey<String> = AttributeKey.stringKey("user.roles")
 

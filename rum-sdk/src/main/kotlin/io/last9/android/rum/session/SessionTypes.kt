@@ -24,6 +24,7 @@ internal data class PersistedSession(
 data class UserInfo(
     val id: String? = null,
     val name: String? = null,
+    val fullName: String? = null,
     val email: String? = null,
     val roles: List<String>? = null,
 )

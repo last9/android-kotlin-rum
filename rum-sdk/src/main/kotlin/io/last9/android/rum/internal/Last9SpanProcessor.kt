@@ -30,6 +30,7 @@ internal class Last9SpanProcessor : SpanProcessor {
         SessionStore.getCurrentUser()?.let { user ->
             user.id?.let { span.setAttribute(SemanticConventions.USER_ID, it) }
             user.name?.let { span.setAttribute(SemanticConventions.USER_NAME, it) }
+            user.fullName?.let { span.setAttribute(SemanticConventions.USER_FULL_NAME, it) }
             user.email?.let { span.setAttribute(SemanticConventions.USER_EMAIL, it) }
             user.roles?.takeIf { it.isNotEmpty() }?.let {
                 span.setAttribute(SemanticConventions.USER_ROLES, it.joinToString(","))
