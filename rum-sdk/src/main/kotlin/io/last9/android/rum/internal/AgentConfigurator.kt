@@ -55,7 +55,9 @@ internal object AgentConfigurator {
         SessionStore.init(app)
 
         val rumConfig = OtelRumConfig().apply {
-            setDiskBufferingConfig(DiskBufferingConfig.create(false))
+            // Disk buffering ensures crash/ANR spans survive process death.
+            // The OTel agent writes them to disk immediately; they are sent on next launch.
+            setDiskBufferingConfig(DiskBufferingConfig.create(true))
 
             suppressInstrumentation(InstrumentationNames.SESSIONS)
 
