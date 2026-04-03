@@ -8,12 +8,13 @@ Open-source Real User Monitoring (RUM) SDK for Android, built on [OpenTelemetry]
 
 ## What it does
 
+- **Crash reporting** — unhandled JVM exceptions captured as error spans with full stack traces, persisted to disk so they survive process death and are sent on next launch
+- **ANR detection** — main thread blocked >5s reported as error spans with thread dump
 - **App startup tracking** — cold and warm start times via OTel Android agent
-- **Crash reporting** — unhandled exceptions captured as error spans with stack traces
-- **ANR detection** — main thread blocked >5s reported as spans
+- **Session tracking** — "Session Start"/"Session End" spans with `session.id` on every span, auto-rollover after 4 hours or 30 minutes of inactivity, persists across app restarts
+- **View tracking** — "View" spans per screen with `view.id`, `view.name`, `view.time_spent`, error/resource counts
 - **Activity lifecycle tracking** — automatic capture of all Activity events (onCreate, onResume, onPause, etc.)
-- **Automatic screen tracking** — zero-code solution for tracking all screens (perfect for apps with 50+ Activities)
-- **Session tracking** — automatic session.id on every span
+- **User identity** — `user.id`, `user.name`, `user.email` injected on all spans via `Last9.identify()`
 - **OkHttp instrumentation** — automatic CLIENT spans with W3C `traceparent` injection for distributed tracing
 - **Custom spans** — manual instrumentation API for business logic
 
@@ -196,15 +197,83 @@ Last9.getInstance().enableAutomaticScreenTracking(this)
 - ✅ Automatic screen.name attribute
 - ✅ Scales to any number of Activities
 
+### Crash Reporting
+
+**Automatic** — unhandled JVM exceptions are captured as error spans:
+
+- Full stack trace attached as span event
+- Span status set to ERROR with exception message
+- **Disk buffered** — crash spans are written to disk immediately and sent on next app launch (survives process death)
+- Includes `session.id` and `view.id` so you can see exactly what the user was doing when the crash happened
+
+Disable if needed:
+```kotlin
+Last9.init(this) {
+    enableCrashReporting = false
+}
+```
+
+### ANR Detection
+
+**Automatic** — Application Not Responding events (main thread blocked >5s):
+
+- Reported as error spans with thread state information
+- **Disk buffered** — if the system kills the app during ANR, the span is sent on next launch
+- Includes `session.id` and `view.id` for context
+
+Disable if needed:
+```kotlin
+Last9.init(this) {
+    enableAnrDetection = false
+}
+```
+
 ### Session Tracking
 
-**Automatic** — every span gets a unique `session.id` attribute:
+**Automatic** — full session lifecycle matching the browser SDK:
 
-- Same `session.id` across all spans in an app session
-- New `session.id` when app is restarted
+- "Session Start" and "Session End" spans emitted automatically
+- `session.id` = traceId of the "Session Start" span (injected on ALL spans)
+- `session.previous_id` links consecutive sessions for user journey tracing
+- Auto-rollover after 4 hours or 30 minutes of inactivity (configurable)
+- Persists across app restarts via SharedPreferences
 - No configuration needed
 
-**Note:** This is a workaround for OpenTelemetry Android 1.0.1 bug ([issue #781](https://github.com/open-telemetry/opentelemetry-android/issues/781)) where the built-in session.id is empty.
+```kotlin
+// Optional: customize timeouts
+Last9.init(this) {
+    sessionMaxDurationMs = 2L * 60 * 60 * 1000   // 2 hours
+    sessionInactivityTimeoutMs = 15L * 60 * 1000  // 15 minutes
+}
+```
+
+### View Tracking
+
+When `enableAutomaticScreenTracking()` is called, the SDK creates "View" spans for each screen:
+
+- `view.id` and `view.name` injected on ALL spans while the view is active
+- `view.time_spent` — how long the user was on the screen
+- `view.error.count`, `view.resource.count` — aggregated per-view metrics
+- Manual API for Compose or custom screens:
+
+```kotlin
+Last9.getInstance().startView("Checkout")
+Last9.getInstance().setViewName("Cart")
+```
+
+### User Identity
+
+Associate spans with a user for debugging:
+
+```kotlin
+// After login
+Last9.identify(UserInfo(id = "u123", name = "Alice", email = "alice@example.com"))
+
+// After logout
+Last9.clearUser()
+```
+
+When set, `user.id`, `user.name`, and `user.email` are injected on ALL subsequent spans.
 
 ### HTTP Request Tracking
 

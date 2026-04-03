@@ -1,5 +1,7 @@
 package io.last9.android.rum
 
+import io.last9.android.rum.session.SessionConstants
+
 /**
  * Scopes the DSL so nested lambdas cannot accidentally access the outer receiver.
  */
@@ -122,6 +124,20 @@ class Last9Options {
      * take precedence and cannot be overridden here.
      */
     var additionalResourceAttributes: Map<String, String> = emptyMap()
+
+    /**
+     * Maximum session duration in milliseconds.
+     * After this duration, the session rolls over (end + start new).
+     * Default: 4 hours (matches browser SDK).
+     */
+    var sessionMaxDurationMs: Long = SessionConstants.MAX_SESSION_DURATION_MS
+
+    /**
+     * Session inactivity timeout in milliseconds.
+     * If the app is inactive for this long, the session rolls over on next resume.
+     * Default: 30 minutes (matches browser SDK).
+     */
+    var sessionInactivityTimeoutMs: Long = SessionConstants.SESSION_INACTIVITY_TIMEOUT_MS
 
     // -------------------------------------------------------------------------
     // Internal helpers

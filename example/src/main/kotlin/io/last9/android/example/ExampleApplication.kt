@@ -181,22 +181,41 @@ class ExampleApplication : Application() {
         rumInstance.enableAutomaticScreenTracking(this)
 
         // ============================================================
-        // SESSION TRACKING (AUTOMATIC - ZERO CONFIG)
+        // USER IDENTITY (OPTIONAL)
         // ============================================================
 
         /**
-         * Session tracking is now AUTOMATIC!
+         * Set user identity — attributes are injected on ALL subsequent spans.
          *
-         * The SDK automatically adds session.id to ALL spans with zero configuration.
+         * Call this after login or when user identity is known.
+         * Call Last9.clearUser() on logout.
+         */
+        // rumInstance.identify(UserInfo(id = "u123", name = "Alice", email = "alice@example.com"))
+
+        // ============================================================
+        // SESSION + VIEW TRACKING (AUTOMATIC - ZERO CONFIG)
+        // ============================================================
+
+        /**
+         * Session and view tracking are now AUTOMATIC!
          *
-         * This is a workaround for OpenTelemetry Android 1.0.1 bug where
-         * the built-in session.id is empty (issue #781).
+         * Sessions:
+         * - "Session Start" and "Session End" spans emitted automatically
+         * - session.id = traceId of the Session Start span
+         * - session.previous_id links consecutive sessions
+         * - Auto-rollover after 4 hours or 30 minutes of inactivity
+         * - Persists across app restarts via SharedPreferences
+         * - session.id injected on ALL spans
          *
-         * What you get automatically:
-         * - Unique session.id attribute on every span
-         * - Same session ID across the entire app session
-         * - New session ID when app is restarted
-         * - No code needed!
+         * Views:
+         * - "View" spans created on Activity resume, ended on pause
+         * - view.id, view.name, view.time_spent tracked automatically
+         * - view.id + view.name injected on ALL spans
+         *
+         * User identity (if set via identify()):
+         * - user.id, user.name, user.email injected on ALL spans
+         *
+         * No code needed beyond Last9.init() + enableAutomaticScreenTracking()!
          *
          * Issue: https://github.com/open-telemetry/opentelemetry-android/issues/781
          */

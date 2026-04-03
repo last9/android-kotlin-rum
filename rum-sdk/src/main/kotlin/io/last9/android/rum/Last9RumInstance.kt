@@ -2,6 +2,9 @@ package io.last9.android.rum
 
 import android.app.Application
 import io.last9.android.rum.instrumentation.OkHttpInstrumentation
+import io.last9.android.rum.session.SessionStore
+import io.last9.android.rum.session.UserInfo
+import io.last9.android.rum.view.ViewManager
 import io.opentelemetry.android.OpenTelemetryRum
 import io.opentelemetry.api.trace.Tracer
 
@@ -25,12 +28,16 @@ import io.opentelemetry.api.trace.Tracer
  *
  * // Automatic screen tracking for all Activities
  * rum.enableAutomaticScreenTracking(app)
+ *
+ * // User identity (injected on all spans)
+ * rum.identify(UserInfo(id = "u123", name = "Alice", email = "alice@example.com"))
  * ```
  */
 class Last9RumInstance internal constructor(
     /** The underlying [OpenTelemetryRum] instance for advanced use cases. */
     val otelRum: OpenTelemetryRum,
     private val options: Last9Options,
+    internal val viewManager: ViewManager,
 ) {
     /**
      * Returns an OTel [Tracer] for creating manual spans.
@@ -57,45 +64,50 @@ class Last9RumInstance internal constructor(
     }
 
     /**
-     * Enable automatic screen tracking for all Activities.
+     * Enable automatic screen/view tracking for all Activities.
      *
-     * Call this once in your Application.onCreate() to automatically track
-     * screen views for ALL Activities without adding code to each one.
+     * Creates "View" spans with `view.id`, `view.name`, and `view.time_spent`.
+     * View context (`view.id` + `view.name`) is injected on ALL spans while
+     * the view is active.
      *
-     * This is ideal for apps with many screens (50+) where manually adding
-     * tracking code to every Activity would be difficult to maintain.
-     *
-     * What it tracks:
-     * - Creates a "screen.view" span for every Activity onCreate
-     * - Sets screen.name attribute to the Activity's simple class name
-     * - Works for all current and future Activities
-     *
-     * Example:
-     * ```kotlin
-     * class MyApp : Application() {
-     *     override fun onCreate() {
-     *         super.onCreate()
-     *         Last9.init(this) { ... }
-     *
-     *         // Enable automatic screen tracking
-     *         Last9.getInstance().enableAutomaticScreenTracking(this)
-     *     }
-     * }
-     * ```
-     *
-     * What you'll see in Last9 dashboard:
-     * - Span name: "screen.view"
-     * - Attributes: screen.name, screen.class
-     * - One span per Activity created
-     *
-     * @param application The Application instance to register callbacks with
+     * @param application The Application instance to register callbacks with.
      */
     fun enableAutomaticScreenTracking(application: Application) {
-        val callbacks = ScreenTrackingCallbacks(
-            tracer = getTracer(),
-            debugMode = options.debugMode
-        )
-        application.registerActivityLifecycleCallbacks(callbacks)
+        application.registerActivityLifecycleCallbacks(viewManager)
     }
 
+    /**
+     * Set user identity. Attributes are injected on all subsequent spans.
+     * Pass null to clear.
+     */
+    fun identify(user: UserInfo?) {
+        if (user == null) {
+            clearUser()
+            return
+        }
+        SessionStore.setCurrentUser(
+            UserInfo(
+                id = user.id?.takeIf { it.isNotBlank() },
+                name = user.name?.takeIf { it.isNotBlank() },
+                fullName = user.fullName?.takeIf { it.isNotBlank() },
+                email = user.email?.takeIf { it.isNotBlank() },
+                roles = user.roles?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() },
+            )
+        )
+    }
+
+    /** Clear user identity from all subsequent spans. */
+    fun clearUser() {
+        SessionStore.setCurrentUser(null)
+    }
+
+    /** Start a named view manually (for non-Activity screens like Compose). */
+    fun startView(name: String) {
+        viewManager.startView(name)
+    }
+
+    /** Override the current view name (e.g., after loading dynamic content). */
+    fun setViewName(name: String) {
+        viewManager.setViewName(name)
+    }
 }
