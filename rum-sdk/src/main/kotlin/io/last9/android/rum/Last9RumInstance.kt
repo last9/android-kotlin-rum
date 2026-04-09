@@ -92,6 +92,11 @@ class Last9RumInstance internal constructor(
                 fullName = user.fullName?.takeIf { it.isNotBlank() },
                 email = user.email?.takeIf { it.isNotBlank() },
                 roles = user.roles?.filter { it.isNotBlank() }?.takeIf { it.isNotEmpty() },
+                ipLocation = user.ipLocation?.takeIf { it.isNotBlank() },
+                cityName = user.cityName?.takeIf { it.isNotBlank() },
+                customAttributes = user.customAttributes
+                    ?.filterValues { it.isNotBlank() }
+                    ?.takeIf { it.isNotEmpty() },
             )
         )
     }

@@ -27,4 +27,8 @@ data class UserInfo(
     val fullName: String? = null,
     val email: String? = null,
     val roles: List<String>? = null,
+    val ipLocation: String? = null,
+    val cityName: String? = null,
+    /** Arbitrary key-value pairs attached as span attributes under the `user.*` namespace. */
+    val customAttributes: Map<String, String>? = null,
 )

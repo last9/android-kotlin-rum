@@ -69,7 +69,7 @@ internal object AgentConfigurator {
 
         val baseExporter = ExporterFactory.createSpanExporter(options)
         val spanExporter = Last9SpanExporter(baseExporter, options.debugMode)
-        val resourceAttributes = ResourceAttributeBuilder.build(options)
+        val resourceAttributes = ResourceAttributeBuilder.build(options, app)
 
         return OpenTelemetryRumBuilder.create(app, rumConfig)
             .addSpanExporterCustomizer { spanExporter }
@@ -80,7 +80,7 @@ internal object AgentConfigurator {
 
                 builder.setResource(Resource.getDefault().merge(last9Resource))
 
-                builder.addSpanProcessor(Last9SpanProcessor())
+                builder.addSpanProcessor(Last9SpanProcessor(app))
 
                 if (options.debugMode) {
                     Log.d(TAG, "Last9SpanProcessor registered (session + view + user injection)")

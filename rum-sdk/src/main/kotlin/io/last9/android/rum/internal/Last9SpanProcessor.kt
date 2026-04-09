@@ -1,16 +1,20 @@
 package io.last9.android.rum.internal
 
+import android.content.Context as AndroidContext
 import io.last9.android.rum.session.SessionStore
+import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.context.Context
 import io.opentelemetry.sdk.trace.ReadWriteSpan
 import io.opentelemetry.sdk.trace.ReadableSpan
 import io.opentelemetry.sdk.trace.SpanProcessor
 
 /**
- * Injects session, view, and user attributes on every span.
+ * Injects session, view, user, and network attributes on every span.
  * Attaches breadcrumb trail on crash/ANR spans.
  */
-internal class Last9SpanProcessor : SpanProcessor {
+internal class Last9SpanProcessor(
+    private val appContext: AndroidContext? = null,
+) : SpanProcessor {
 
     override fun onStart(parentContext: Context, span: ReadWriteSpan) {
         SessionStore.getCurrentSessionId()?.let {
@@ -34,6 +38,25 @@ internal class Last9SpanProcessor : SpanProcessor {
             user.email?.let { span.setAttribute(SemanticConventions.USER_EMAIL, it) }
             user.roles?.takeIf { it.isNotEmpty() }?.let {
                 span.setAttribute(SemanticConventions.USER_ROLES, it.joinToString(","))
+            }
+            user.ipLocation?.let { span.setAttribute(SemanticConventions.USER_IP_LOCATION, it) }
+            user.cityName?.let { span.setAttribute(SemanticConventions.USER_CITY_NAME, it) }
+            user.customAttributes?.forEach { (key, value) ->
+                span.setAttribute(AttributeKey.stringKey("user.$key"), value)
+            }
+        }
+
+        // Network connectivity (sampled on each span — can change mid-session)
+        appContext?.let { ctx ->
+            val networkInfo = NetworkInfoCollector.collect(ctx)
+            networkInfo.connectionType?.let {
+                span.setAttribute(SemanticConventions.NETWORK_CONNECTION_TYPE, it)
+            }
+            networkInfo.connectionSubtype?.let {
+                span.setAttribute(SemanticConventions.NETWORK_CONNECTION_SUBTYPE, it)
+            }
+            networkInfo.carrierName?.let {
+                span.setAttribute(SemanticConventions.NETWORK_CARRIER_NAME, it)
             }
         }
 

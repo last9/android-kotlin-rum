@@ -25,6 +25,16 @@ internal object SemanticConventions {
     val USER_FULL_NAME: AttributeKey<String> = AttributeKey.stringKey("user.full_name")
     val USER_EMAIL: AttributeKey<String> = AttributeKey.stringKey("user.email")
     val USER_ROLES: AttributeKey<String> = AttributeKey.stringKey("user.roles")
+    val USER_IP_LOCATION: AttributeKey<String> = AttributeKey.stringKey("user.ip_location")
+    val USER_CITY_NAME: AttributeKey<String> = AttributeKey.stringKey("user.city_name")
+
+    // Device
+    val DEVICE_TYPE: AttributeKey<String> = AttributeKey.stringKey("device.type")
+
+    // Network
+    val NETWORK_CONNECTION_TYPE: AttributeKey<String> = AttributeKey.stringKey("network.connection.type")
+    val NETWORK_CONNECTION_SUBTYPE: AttributeKey<String> = AttributeKey.stringKey("network.connection.subtype")
+    val NETWORK_CARRIER_NAME: AttributeKey<String> = AttributeKey.stringKey("network.carrier.name")
 
     // Span names (must match browser SDK exactly)
     const val SESSION_START_NAME = "Session Start"
