@@ -7,6 +7,7 @@ import io.opentelemetry.context.Context
 import io.opentelemetry.sdk.trace.ReadWriteSpan
 import io.opentelemetry.sdk.trace.ReadableSpan
 import io.opentelemetry.sdk.trace.SpanProcessor
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Injects session, view, user, and network attributes on every span.
@@ -15,6 +16,8 @@ import io.opentelemetry.sdk.trace.SpanProcessor
 internal class Last9SpanProcessor(
     private val appContext: AndroidContext? = null,
 ) : SpanProcessor {
+
+    private val attributeKeyCache = ConcurrentHashMap<String, AttributeKey<String>>()
 
     override fun onStart(parentContext: Context, span: ReadWriteSpan) {
         SessionStore.getCurrentSessionId()?.let {
@@ -42,7 +45,10 @@ internal class Last9SpanProcessor(
             user.ipLocation?.let { span.setAttribute(SemanticConventions.USER_IP_LOCATION, it) }
             user.cityName?.let { span.setAttribute(SemanticConventions.USER_CITY_NAME, it) }
             user.customAttributes?.forEach { (key, value) ->
-                span.setAttribute(AttributeKey.stringKey("user.$key"), value)
+                val attrKey = attributeKeyCache.getOrPut("user.$key") {
+                    AttributeKey.stringKey("user.$key")
+                }
+                span.setAttribute(attrKey, value)
             }
         }
 

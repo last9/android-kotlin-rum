@@ -9,12 +9,16 @@ import android.telephony.TelephonyManager
 /**
  * Collects current network connectivity type, subtype, and carrier name.
  *
- * All methods are safe to call without special permissions — they use
- * [ConnectivityManager.getActiveNetwork] (available since API 23) which
- * requires no runtime permission, and [TelephonyManager.getNetworkOperatorName]
- * which also requires no permission.
+ * Requires `ACCESS_NETWORK_STATE` (a normal permission declared in the SDK
+ * manifest, granted automatically at install time — no runtime prompt).
+ *
+ * Results are cached for [CACHE_TTL_MS] to avoid Binder IPC on every span.
  */
 internal object NetworkInfoCollector {
+
+    private const val CACHE_TTL_MS = 5_000L
+    @Volatile private var cachedInfo: NetworkInfo? = null
+    @Volatile private var cachedAt: Long = 0L
 
     data class NetworkInfo(
         val connectionType: String?,
@@ -23,6 +27,9 @@ internal object NetworkInfoCollector {
     )
 
     fun collect(context: Context): NetworkInfo {
+        val now = System.currentTimeMillis()
+        cachedInfo?.let { if (now - cachedAt < CACHE_TTL_MS) return it }
+
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
 
@@ -53,7 +60,10 @@ internal object NetworkInfoCollector {
             connectionSubtype = cellSubtype(telephonyManager)
         }
 
-        return NetworkInfo(connectionType, connectionSubtype, carrierName)
+        val info = NetworkInfo(connectionType, connectionSubtype, carrierName)
+        cachedInfo = info
+        cachedAt = now
+        return info
     }
 
     @Suppress("DEPRECATION")
