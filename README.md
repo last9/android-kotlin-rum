@@ -2,7 +2,7 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.last9/kotlin-rum-sdk)](https://central.sonatype.com/artifact/io.last9/kotlin-rum-sdk)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Android API](https://img.shields.io/badge/API-24%2B-brightgreen.svg)](https://developer.android.com/about/versions/nougat)
+[![Android API](https://img.shields.io/badge/API-21%2B-brightgreen.svg)](https://developer.android.com/about/versions/lollipop)
 
 Open-source Real User Monitoring (RUM) SDK for Android, built on [OpenTelemetry](https://opentelemetry.io/). Exports telemetry via standard OTLP/HTTP — works with Last9, Jaeger, Grafana Tempo, or any OTLP-compatible backend.
 
@@ -14,7 +14,9 @@ Open-source Real User Monitoring (RUM) SDK for Android, built on [OpenTelemetry]
 - **Session tracking** — "Session Start"/"Session End" spans with `session.id` on every span, auto-rollover after 4 hours or 30 minutes of inactivity, persists across app restarts
 - **View tracking** — "View" spans per screen with `view.id`, `view.name`, `view.time_spent`, error/resource counts
 - **Activity lifecycle tracking** — automatic capture of all Activity events (onCreate, onResume, onPause, etc.)
-- **User identity** — `user.id`, `user.name`, `user.email` injected on all spans via `Last9.identify()`
+- **User identity** — `user.id`, `user.name`, `user.email`, `user.city_name`, `user.ip_location`, and custom attributes injected on all spans via `Last9.identify()`
+- **Network connectivity** — `network.connection.type` (wifi/cell/ethernet), `network.connection.subtype` (2g/3g/4g/5g), `network.carrier.name` on every span
+- **Device type detection** — `device.type` (phone/tablet/tv/watch/car) for form-factor analysis
 - **OkHttp instrumentation** — automatic CLIENT spans with W3C `traceparent` injection for distributed tracing
 - **Custom spans** — manual instrumentation API for business logic
 
@@ -25,7 +27,7 @@ Open-source Real User Monitoring (RUM) SDK for Android, built on [OpenTelemetry]
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("io.last9:kotlin-rum-sdk:0.2.3")
+    implementation("io.last9:kotlin-rum-sdk:0.3.0-beta.1")
 }
 ```
 
@@ -267,13 +269,46 @@ Associate spans with a user for debugging:
 
 ```kotlin
 // After login
-Last9.identify(UserInfo(id = "u123", name = "Alice", email = "alice@example.com"))
+Last9.identify(UserInfo(
+    id = "u123",
+    name = "Alice",
+    email = "alice@example.com",
+    cityName = "Mumbai",
+    ipLocation = "19.0760,72.8777",
+    customAttributes = mapOf("plan" to "premium", "org_id" to "org-456"),
+))
 
 // After logout
 Last9.clearUser()
 ```
 
-When set, `user.id`, `user.name`, and `user.email` are injected on ALL subsequent spans.
+All `UserInfo` fields are injected on every subsequent span:
+
+| Field | Span attribute | Example |
+|-------|---------------|---------|
+| `id` | `user.id` | `"u123"` |
+| `name` | `user.name` | `"Alice"` |
+| `fullName` | `user.full_name` | `"Alice Smith"` |
+| `email` | `user.email` | `"alice@example.com"` |
+| `roles` | `user.roles` | `"admin,editor"` |
+| `ipLocation` | `user.ip_location` | `"19.0760,72.8777"` |
+| `cityName` | `user.city_name` | `"Mumbai"` |
+| `customAttributes` | `user.<key>` | `user.plan = "premium"` |
+
+### Network & Device Attributes
+
+**Automatic** — no configuration needed. The SDK collects network and device info on every span:
+
+| Attribute | Example | How it's collected |
+|-----------|---------|-------------------|
+| `device.type` | `phone`, `tablet`, `tv` | UI mode + screen size (resource attribute, set once) |
+| `device.manufacturer` | `samsung` | `Build.MANUFACTURER` (resource attribute) |
+| `device.model.identifier` | `SM-G991B` | `Build.MODEL` (resource attribute) |
+| `network.connection.type` | `wifi`, `cell`, `ethernet` | `ConnectivityManager` (per-span, tracks changes) |
+| `network.connection.subtype` | `4g`, `5g` | `TelephonyManager` (per-span, cellular only) |
+| `network.carrier.name` | `Jio` | `TelephonyManager` (per-span) |
+
+Device type detection correctly identifies Fire TV and other TV devices via `UiModeManager`.
 
 ### HTTP Request Tracking
 
@@ -444,7 +479,7 @@ Last9.init(app) { ... }
 
 | | Version |
 |---|---|
-| Minimum SDK | API 24 (Android 7.0) |
+| Minimum SDK | API 21 (Android 5.0) |
 | Compile SDK | API 36 |
 | Kotlin | 2.1+ |
 | Java target | 11 |

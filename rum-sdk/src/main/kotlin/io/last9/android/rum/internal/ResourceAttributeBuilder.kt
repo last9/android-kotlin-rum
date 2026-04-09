@@ -1,5 +1,6 @@
 package io.last9.android.rum.internal
 
+import android.content.Context
 import android.os.Build
 import io.last9.android.rum.BuildConfig
 import io.last9.android.rum.Last9Options
@@ -16,7 +17,7 @@ import io.last9.android.rum.Last9Options
  */
 internal object ResourceAttributeBuilder {
 
-    fun build(options: Last9Options): Map<String, String> = buildMap {
+    fun build(options: Last9Options, context: Context? = null): Map<String, String> = buildMap {
         // 1. User-supplied attributes first — lowest priority
         putAll(options.additionalResourceAttributes)
 
@@ -36,6 +37,7 @@ internal object ResourceAttributeBuilder {
         put("os.name", "android")
         put("os.version", Build.VERSION.RELEASE)
         put("os.api_level", Build.VERSION.SDK_INT.toString())
+        context?.let { put("device.type", DeviceTypeDetector.detect(it)) }
 
         // SDK identity — stamped on every span for supportability
         put("telemetry.sdk.name", "last9-android-rum")
